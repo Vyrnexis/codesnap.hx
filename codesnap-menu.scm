@@ -26,4 +26,5 @@
       (menu-action #\s "Snap to Clipboard" (lambda (switches) (codesnap-execute)))
       (menu-action #\f "Snap to File..." (lambda (switches) (codesnap-execute "/tmp/codesnap.png")))
       (menu-action #\t (string-append "Theme: " *codesnap-theme*) (lambda (switches) (show-theme-picker)))
-      (menu-action #\q "Cancel" (lambda (switches) #f)))))
+      (menu-action #\q "Cancel" (lambda (switches) #f)))
+    #:overlay-scale (lambda () 40)))

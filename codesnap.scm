@@ -120,3 +120,17 @@
 (define (codesnap-bg hex)
   (set! *codesnap-background* hex)
   (set-status! (string-append "🎨 CodeSnap background set to: " hex)))
+
+;; Getters for UI
+(define (get-codesnap-theme) *codesnap-theme*)
+(define (get-codesnap-bg) *codesnap-background*)
+(define (get-codesnap-window-controls) *codesnap-window-controls*)
+(define (get-codesnap-show-title) *codesnap-show-title*)
+(define (get-codesnap-line-numbers) *codesnap-line-numbers*)
+(provide get-codesnap-theme get-codesnap-bg get-codesnap-window-controls get-codesnap-show-title get-codesnap-line-numbers)
+
+;; Setters for UI
+(define (codesnap-set-window-controls! val) (set! *codesnap-window-controls* val))
+(define (codesnap-set-show-title! val) (set! *codesnap-show-title* val))
+(define (codesnap-set-line-numbers! val) (set! *codesnap-line-numbers* val))
+(provide codesnap-set-window-controls! codesnap-set-show-title! codesnap-set-line-numbers!)

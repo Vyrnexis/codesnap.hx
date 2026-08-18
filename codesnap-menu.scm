@@ -9,8 +9,7 @@
                   get-codesnap-theme get-codesnap-bg get-codesnap-window-controls get-codesnap-show-title get-codesnap-line-numbers
                   codesnap-set-window-controls! codesnap-set-show-title! codesnap-set-line-numbers!
                   get-codesnap-shadow-blur get-codesnap-pad-horiz get-codesnap-pad-vert
-                  codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!
-                  codesnap-auto-save-config!))
+                  codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!))
 
 (provide codesnap-menu)
 
@@ -34,11 +33,9 @@
                                        (cond
                                          [(char-is? event #\space)
                                           (codesnap-theme choice)
-                                          (codesnap-auto-save-config!)
                                           event-result/consume]
                                          [(key-event-enter? event)
                                           (codesnap-theme choice)
-                                          (codesnap-auto-save-config!)
                                           (pop-last-component-by-name! "codesnap-theme-picker")
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
@@ -63,11 +60,9 @@
                                        (cond
                                          [(char-is? event #\space)
                                           (codesnap-bg (substring choice 0 7))
-                                          (codesnap-auto-save-config!)
                                           event-result/consume]
                                          [(key-event-enter? event)
                                           (codesnap-bg (substring choice 0 7))
-                                          (codesnap-auto-save-config!)
                                           (pop-last-component-by-name! "codesnap-bg-picker")
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
@@ -91,11 +86,9 @@
                                        (cond
                                          [(char-is? event #\space)
                                           (setter! (string->number choice))
-                                          (codesnap-auto-save-config!)
                                           event-result/consume]
                                          [(key-event-enter? event)
                                           (setter! (string->number choice))
-                                          (codesnap-auto-save-config!)
                                           (pop-last-component-by-name! name)
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
@@ -149,17 +142,14 @@
                                             [(equal? choice "Window Controls") 
                                              (begin
                                                (codesnap-set-window-controls! (not (get-codesnap-window-controls)))
-                                               (codesnap-auto-save-config!)
                                                event-result/consume)]
                                             [(equal? choice "Window Title") 
                                              (begin
                                                (codesnap-set-show-title! (not (get-codesnap-show-title)))
-                                               (codesnap-auto-save-config!)
                                                event-result/consume)]
                                             [(equal? choice "Line Numbers") 
                                              (begin
                                                (codesnap-set-line-numbers! (not (get-codesnap-line-numbers)))
-                                               (codesnap-auto-save-config!)
                                                event-result/consume)]
                                             [else #f])]
                                          [(or (key-event-escape? event) (key-event-left? event) (char-is? event #\h))

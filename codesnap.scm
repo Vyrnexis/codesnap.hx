@@ -146,26 +146,3 @@
 (provide get-codesnap-shadow-blur get-codesnap-pad-horiz get-codesnap-pad-vert
          codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!)
 
-(define (codesnap-auto-save-config!)
-  (let* ([home (static-env "HOME")]
-         [config-path (string-append home "/.config/helix/codesnap-auto.scm")]
-         [content (string-append
-                   "(require (only-in \"codesnap/codesnap.scm\" codesnap-configure!))\n"
-                   "(codesnap-configure! "
-                   "#:theme \"" *codesnap-theme* "\" "
-                   "#:background \"" *codesnap-background* "\" "
-                   "#:shadow-blur " (number->string *codesnap-shadow-blur*) " "
-                   "#:pad-horiz " (number->string *codesnap-pad-horiz*) " "
-                   "#:pad-vert " (number->string *codesnap-pad-vert*) " "
-                   "#:window-controls? " (if *codesnap-window-controls* "#t" "#f") " "
-                   "#:show-title? " (if *codesnap-show-title* "#t" "#f") " "
-                   "#:line-numbers? " (if *codesnap-line-numbers* "#t" "#f") " "
-                   ")\n")])
-    (helix.run-shell-command (string-append "echo '" content "' > " config-path))))
-
-(provide codesnap-auto-save-config!)
-
-(let* ([home (static-env "HOME")]
-       [config-path (string-append home "/.config/helix/codesnap-auto.scm")])
-  (when (path-exists? config-path)
-    (load config-path)))

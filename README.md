@@ -6,6 +6,15 @@ A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [S
 
 Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your current visual selection to [silicon](https://github.com/Aloxaf/silicon) to generate the image.
 
+## The Control Panel
+
+The plugin features a fully interactive TUI control panel for taking snaps and live-previewing settings:
+
+<p align="center">
+  <img src="menu.png" alt="CodeSnap Main Menu" width="48%" />
+  <img src="settings.png" alt="CodeSnap Settings Menu" width="48%" />
+</p>
+
 ## Requirements
 
 1. **Helix with Steel**: You need a build of Helix that includes the Scheme/Steel plugin system.

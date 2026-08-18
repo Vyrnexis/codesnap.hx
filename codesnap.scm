@@ -16,7 +16,8 @@
 (define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
 
 ;; --- Configuration API ---
-;; (Removed doc comment here so it doesn't show in the Helix command palette!)
+;;@doc
+;; Configures codesnap defaults. Best called from your init.scm!
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
                              #:background [background *codesnap-background*]
                              #:shadow-blur [shadow-blur *codesnap-shadow-blur*]

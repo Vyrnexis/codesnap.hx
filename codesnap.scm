@@ -10,6 +10,7 @@
 (define *codesnap-background* "#aaaaff")
 (define *codesnap-shadow-blur* 15)
 (define *codesnap-window-controls* #true)
+(define *codesnap-show-title* #true)           ; Show filename in the window bar!
 (define *codesnap-line-numbers* #true)
 (define *codesnap-pad-horiz* 80)
 (define *codesnap-pad-vert* 100)
@@ -22,6 +23,7 @@
                              #:background [background *codesnap-background*]
                              #:shadow-blur [shadow-blur *codesnap-shadow-blur*]
                              #:window-controls? [window-controls? *codesnap-window-controls*]
+                             #:show-title? [show-title? *codesnap-show-title*]
                              #:line-numbers? [line-numbers? *codesnap-line-numbers*]
                              #:pad-horiz [pad-horiz *codesnap-pad-horiz*]
                              #:pad-vert [pad-vert *codesnap-pad-vert*]
@@ -30,6 +32,7 @@
   (set! *codesnap-background* background)
   (set! *codesnap-shadow-blur* shadow-blur)
   (set! *codesnap-window-controls* window-controls?)
+  (set! *codesnap-show-title* show-title?)
   (set! *codesnap-line-numbers* line-numbers?)
   (set! *codesnap-pad-horiz* pad-horiz)
   (set! *codesnap-pad-vert* pad-vert)
@@ -48,20 +51,30 @@
          [lang (editor-document->language focus-doc-id)])
     (normalize-language lang)))
 
+(define (current-filename)
+  (let* ([focus (editor-focus)]
+         [focus-doc-id (editor->doc-id focus)]
+         [path (editor-document->path focus-doc-id)])
+    (if path path #f)))
+
 (define (bool->flag bool flag)
   (if bool "" flag))
 
-(define (build-silicon-args lang out-path)
-  (let ([base-args (string-append
-                    " --from-clipboard "
-                    " --theme \"" *codesnap-theme* "\""
-                    " --background \"" *codesnap-background* "\""
-                    " --shadow-blur-radius " (number->string *codesnap-shadow-blur*)
-                    " --pad-horiz " (number->string *codesnap-pad-horiz*)
-                    " --pad-vert " (number->string *codesnap-pad-vert*)
-                    " " (bool->flag *codesnap-window-controls* "--no-window-controls")
-                    " " (bool->flag *codesnap-line-numbers* "--no-line-number")
-                    " -o " out-path)])
+(define (build-silicon-args lang filename out-path)
+  (let* ([title-arg (if (and *codesnap-show-title* filename)
+                        (string-append " --window-title \"$(basename '" filename "')\"")
+                        "")]
+         [base-args (string-append
+                     " --from-clipboard "
+                     title-arg
+                     " --theme \"" *codesnap-theme* "\""
+                     " --background \"" *codesnap-background* "\""
+                     " --shadow-blur-radius " (number->string *codesnap-shadow-blur*)
+                     " --pad-horiz " (number->string *codesnap-pad-horiz*)
+                     " --pad-vert " (number->string *codesnap-pad-vert*)
+                     " " (bool->flag *codesnap-window-controls* "--no-window-controls")
+                     " " (bool->flag *codesnap-line-numbers* "--no-line-number")
+                     " -o " out-path)])
     (string-append 
      "rm -f " out-path " && "
      "silicon -l " lang base-args " 2>/dev/null ; "
@@ -77,9 +90,10 @@
    100
    (lambda ()
      (let* ([lang (current-language)]
+            [filename (current-filename)]
             [save-to-file? (not (null? args))]
             [out-path (if save-to-file? (car args) "/tmp/codesnap_capture.png")]
-            [silicon-cmd (build-silicon-args lang out-path)]
+            [silicon-cmd (build-silicon-args lang filename out-path)]
             [full-cmd (if save-to-file?
                           silicon-cmd
                           (string-append silicon-cmd " && " *codesnap-clipboard-command* " " out-path))])

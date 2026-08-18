@@ -58,6 +58,7 @@ You can configure the plugin's default settings by calling `codesnap-configure!`
                      #:background "#aaaaff"
                      #:shadow-blur 15
                      #:window-controls? #t
+                     #:show-title? #t
                      #:line-numbers? #t
                      #:pad-horiz 80
                      #:pad-vert 100

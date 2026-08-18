@@ -28,16 +28,18 @@
   (if bool "" flag))
 
 (define (build-silicon-args lang out-path)
-  (string-append
-   "silicon --from-clipboard -l " lang
-   " --theme \"" *codesnap-theme* "\""
-   " --background \"" *codesnap-background* "\""
-   " --shadow-blur-radius " (number->string *codesnap-shadow-blur*)
-   " --pad-horiz " (number->string *codesnap-pad-horiz*)
-   " --pad-vert " (number->string *codesnap-pad-vert*)
-   " " (bool->flag *codesnap-window-controls* "--no-window-controls")
-   " " (bool->flag *codesnap-line-numbers* "--no-line-number")
-   " -o " out-path))
+  (let ([base-args (string-append
+                    " --from-clipboard "
+                    " --theme \"" *codesnap-theme* "\""
+                    " --background \"" *codesnap-background* "\""
+                    " --shadow-blur-radius " (number->string *codesnap-shadow-blur*)
+                    " --pad-horiz " (number->string *codesnap-pad-horiz*)
+                    " --pad-vert " (number->string *codesnap-pad-vert*)
+                    " " (bool->flag *codesnap-window-controls* "--no-window-controls")
+                    " " (bool->flag *codesnap-line-numbers* "--no-line-number")
+                    " -o " out-path)])
+    ;; Group the commands so we fallback to 'txt' if the language is unsupported by silicon
+    (string-append "( silicon -l " lang base-args " || silicon -l txt " base-args " )")))
 
 ;; --- Commands ---
 

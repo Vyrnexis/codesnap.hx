@@ -3,25 +3,42 @@
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 
-(provide codesnap codesnap-save codesnap-theme codesnap-bg)
+(provide codesnap codesnap-save codesnap-theme codesnap-bg codesnap-configure!)
 
-;; --- Configuration Options ---
-(define *codesnap-theme* "Dracula")            ; See `silicon --list-themes`
-(define *codesnap-background* "#aaaaff")       ; Hex color
-(define *codesnap-shadow-blur* 15)             ; Blur radius (0 to disable)
-(define *codesnap-window-controls* #true)      ; Show macOS window controls
-(define *codesnap-line-numbers* #true)         ; Show line numbers
+;; --- Default Configuration Options ---
+(define *codesnap-theme* "Dracula")
+(define *codesnap-background* "#aaaaff")
+(define *codesnap-shadow-blur* 15)
+(define *codesnap-window-controls* #true)
+(define *codesnap-line-numbers* #true)
 (define *codesnap-pad-horiz* 80)
 (define *codesnap-pad-vert* 100)
-
-;; Set to your clipboard manager of choice (pbcopy, wl-copy, xclip, etc.)
 (define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
+
+;; --- Configuration API ---
+;;@doc
+;; Configures codesnap defaults. Best called from your init.scm!
+(define (codesnap-configure! #:theme [theme *codesnap-theme*]
+                             #:background [background *codesnap-background*]
+                             #:shadow-blur [shadow-blur *codesnap-shadow-blur*]
+                             #:window-controls? [window-controls? *codesnap-window-controls*]
+                             #:line-numbers? [line-numbers? *codesnap-line-numbers*]
+                             #:pad-horiz [pad-horiz *codesnap-pad-horiz*]
+                             #:pad-vert [pad-vert *codesnap-pad-vert*]
+                             #:clipboard-command [clipboard-command *codesnap-clipboard-command*])
+  (set! *codesnap-theme* theme)
+  (set! *codesnap-background* background)
+  (set! *codesnap-shadow-blur* shadow-blur)
+  (set! *codesnap-window-controls* window-controls?)
+  (set! *codesnap-line-numbers* line-numbers?)
+  (set! *codesnap-pad-horiz* pad-horiz)
+  (set! *codesnap-pad-vert* pad-vert)
+  (set! *codesnap-clipboard-command* clipboard-command))
 
 ;; --- Internal Helpers ---
 (define (normalize-language lang)
   (cond
    [(not lang) "txt"]
-   ;; Map Helix languages to Silicon-supported equivalents where they differ
    [(equal? lang "scheme") "lisp"]
    [else lang]))
 
@@ -45,9 +62,6 @@
                     " " (bool->flag *codesnap-window-controls* "--no-window-controls")
                     " " (bool->flag *codesnap-line-numbers* "--no-line-number")
                     " -o " out-path)])
-    ;; Silicon unfortunately returns exit code 0 on "Unsupported language" error!
-    ;; So we must delete the out-path, run silicon, check if file exists, and if not, fallback to markdown (md).
-    ;; We also pipe stderr to /dev/null so Helix doesn't show a popup on the first failure.
     (string-append 
      "rm -f " out-path " && "
      "silicon -l " lang base-args " 2>/dev/null ; "

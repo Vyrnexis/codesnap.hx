@@ -13,7 +13,7 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
    ```bash
    cargo install silicon
    ```
-3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`pbcopy`), you'll need to edit the clipboard command at the top of `codesnap.scm`.
+3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`pbcopy`), you'll need to configure the plugin in your `init.scm`.
 
 ## Installation
 
@@ -41,15 +41,18 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then run o
 
 ## Configuration
 
-If you want to change the default theme, padding, shadows, or your clipboard utility, you can find the installed file at `~/.local/share/steel/cogs/codesnap/codesnap.scm` and edit the variables at the top of the file:
+You can configure the plugin's default settings by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
 
 ```scheme
-(define *codesnap-theme* "Dracula")            
-(define *codesnap-background* "#aaaaff")       
-(define *codesnap-shadow-blur* 15)             
-(define *codesnap-window-controls* #true)      
-(define *codesnap-line-numbers* #true)         
+(require (only-in "codesnap/codesnap.scm" codesnap-configure!))
 
-;; Change this if you are on Wayland (wl-copy) or macOS (pbcopy)
-(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
+(codesnap-configure! #:theme "Dracula"
+                     #:background "#aaaaff"
+                     #:shadow-blur 15
+                     #:window-controls? #t
+                     #:line-numbers? #t
+                     #:pad-horiz 80
+                     #:pad-vert 100
+                     ;; Change this if you are on Wayland (wl-copy) or macOS (pbcopy)
+                     #:clipboard-command "xclip -selection clipboard -t image/png -i")
 ```

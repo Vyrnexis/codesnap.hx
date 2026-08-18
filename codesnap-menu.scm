@@ -34,7 +34,7 @@
                                          [(or (key-event-left? event) (key-event-escape? event))
                                           (pop-last-component-by-name! "codesnap-theme-picker")
                                           event-result/consume]
-                                         [else #f])))])
+                                         [else #f]))))])
     (show-picker! spec)))
 
 (define (show-background-picker)
@@ -57,7 +57,7 @@
                                          [(or (key-event-left? event) (key-event-escape? event))
                                           (pop-last-component-by-name! "codesnap-bg-picker")
                                           event-result/consume]
-                                         [else #f])))])
+                                         [else #f]))))])
     (show-picker! spec)))
 
 (define (codesnap-menu-impl yank?)
@@ -111,7 +111,7 @@
                                          [(key-event-escape? event)
                                           (pop-last-component-by-name! "codesnap-main-menu")
                                           event-result/consume]
-                                         [else #f])))])
+                                         [else #f]))))])
     (show-picker! spec)))
 
 ;;@doc

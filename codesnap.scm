@@ -18,7 +18,6 @@
 
 ;; --- Configuration API ---
 
-;;@doc
 ;; Configures codesnap defaults. Best called from your init.scm!
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
                              #:background [background *codesnap-background*]

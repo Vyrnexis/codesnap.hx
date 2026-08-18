@@ -38,8 +38,13 @@
                     " " (bool->flag *codesnap-window-controls* "--no-window-controls")
                     " " (bool->flag *codesnap-line-numbers* "--no-line-number")
                     " -o " out-path)])
-    ;; Group the commands so we fallback to 'txt' if the language is unsupported by silicon
-    (string-append "( silicon -l " lang base-args " || silicon -l txt " base-args " )")))
+    ;; Silicon unfortunately returns exit code 0 on "Unsupported language" error!
+    ;; So we must delete the out-path, run silicon, check if file exists, and if not, fallback to markdown (md).
+    ;; We also pipe stderr to /dev/null so Helix doesn't show a popup on the first failure.
+    (string-append 
+     "rm -f " out-path " && "
+     "silicon -l " lang base-args " 2>/dev/null ; "
+     "[ -f " out-path " ] || silicon -l md " base-args)))
 
 ;; --- Commands ---
 

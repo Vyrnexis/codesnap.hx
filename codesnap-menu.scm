@@ -12,15 +12,22 @@
   (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" "Visual Studio Dark+")]
          [spec (make-picker #:name "codesnap-theme-picker"
                             #:items themes
-                            #:on-select (lambda (theme) 
-                                          (codesnap-theme theme)))])
+                            #:filter? #t
+                            #:close-mode 'pop
+                            #:on-accept (lambda (theme) 
+                                          (codesnap-theme theme)
+                                          (codesnap-menu-impl #f)))])
     (show-picker! spec)))
 
 ;;@doc
 ;; Open the interactive CodeSnap control panel
 (define (codesnap-menu)
+  (codesnap-menu-impl #t))
+
+(define (codesnap-menu-impl yank?)
   ;; Yank immediately to preserve visual selection before popup opens
-  (helix.clipboard-yank)
+  (when yank?
+    (helix.clipboard-yank))
   (show-menu "CodeSnap Options"
     (list
       (menu-action #\s "Snap to Clipboard" (lambda (switches) (codesnap-execute)))

@@ -1,6 +1,6 @@
 # codesnap.hx
 
-![Screenshot of CodeSnap in action](screenshot.png)
+![Screenshot of CodeSnap in action](screenshots/screenshot.png)
 
 A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [Steel plugin branch](https://github.com/mattwparas/helix)) that takes screenshots of your code and copies them to your clipboard. 
 
@@ -11,8 +11,8 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
 The plugin features a fully interactive TUI control panel for taking snaps and live-previewing settings:
 
 <p align="center">
-  <img src="menu.png" alt="CodeSnap Main Menu" width="48%" />
-  <img src="settings.png" alt="CodeSnap Settings Menu" width="48%" />
+  <img src="screenshots/menu.png" alt="CodeSnap Main Menu" width="48%" />
+  <img src="screenshots/settings.png" alt="CodeSnap Settings Menu" width="48%" />
 </p>
 
 ## Requirements

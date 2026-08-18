@@ -47,22 +47,26 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then open 
 
 ### The CodeSnap Menu
 
-The `:codesnap-menu` is the main interface for CodeSnap. From here, you can instantly snap pictures or toggle your configuration.
+The `:codesnap-menu` is the main interface for CodeSnap. From here, you can instantly snap pictures or explore different configurations visually.
 
 **Navigation:**
 - Use **Up / Down** arrows (or `j` / `k`) to navigate the menu items.
 - Use **Enter** to expand submenus or execute "Snap" actions.
-- Use **Space** to toggle switches (ON/OFF) or to select an active Theme/Background without closing the menu.
+- Use **Space** to toggle switches (ON/OFF) or to visually preview a Theme/Background/Padding without closing the menu!
 - Use **Right** arrow (or `l`) to expand submenus without executing actions.
-- Use **Left** arrow (or `h`) to return to the main menu from a submenu.
+- Use **Left** arrow (or `h`) to gently return to the main menu from a submenu.
 - Use **Escape** to close the window from anywhere.
 
 **Actions:**
 - **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
 - **Snap to File...**: Captures the selection and saves it to `/tmp/codesnap.png`.
-- **Theme**: Opens a picker to select a new syntax highlighting theme.
-- **Background**: Opens a picker to choose a background color for the image.
-- **Toggles**: Toggle Window Controls, Window Titles, or Line Numbers live.
+- **Settings >**: Opens the configuration submenu where you can visually tweak:
+  - **Themes** and **Backgrounds** (includes Transparent option!)
+  - **Shadow Blur**
+  - **Padding** (Horizontal & Vertical)
+  - **Toggles** for Window Controls, Titles, and Line Numbers.
+
+*(Note: Settings tweaked in the menu are for live previewing. To persist them, add them to your `init.scm`)*
 
 ### Direct Commands
 
@@ -73,7 +77,7 @@ If you prefer to bypass the menu, you can use these commands directly:
 
 ## Configuration
 
-You can configure the plugin's default settings by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
+You can make your favorite settings persist across editor restarts by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
 
 ```scheme
 (require (only-in "codesnap/codesnap.scm" codesnap-configure!))

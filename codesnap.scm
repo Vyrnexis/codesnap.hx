@@ -6,15 +6,15 @@
 (provide codesnap codesnap-theme codesnap-bg codesnap-configure!)
 
 ;; --- Default Configuration Options ---
-(define *codesnap-theme* "Dracula")
-(define *codesnap-background* "#aaaaff")
-(define *codesnap-shadow-blur* 15)
-(define *codesnap-window-controls* #true)
-(define *codesnap-show-title* #true)           ; Show filename in the window bar!
-(define *codesnap-line-numbers* #true)
-(define *codesnap-pad-horiz* 80)
-(define *codesnap-pad-vert* 100)
-(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
+(define *codesnap-theme* "Dracula")            ; Syntax highlighting theme (run `silicon --list-themes` for options)
+(define *codesnap-background* "#aaaaff")       ; Hex color for the background behind the code window
+(define *codesnap-shadow-blur* 15)             ; Size of the drop shadow blur (set to 0 to disable)
+(define *codesnap-window-controls* #true)      ; Show macOS-style window controls (red/yellow/green dots)
+(define *codesnap-show-title* #true)           ; Show the current filename in the window title bar
+(define *codesnap-line-numbers* #true)         ; Show line numbers on the left side
+(define *codesnap-pad-horiz* 80)               ; Horizontal padding (pixels) around the code window
+(define *codesnap-pad-vert* 100)               ; Vertical padding (pixels) around the code window
+(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i") ; Command used to copy to clipboard
 
 ;; --- Configuration API ---
 ;;@doc

@@ -54,14 +54,16 @@ You can configure the plugin's default settings by calling `codesnap-configure!`
 ```scheme
 (require (only-in "codesnap/codesnap.scm" codesnap-configure!))
 
-(codesnap-configure! #:theme "Dracula"
-                     #:background "#aaaaff"
-                     #:shadow-blur 15
-                     #:window-controls? #t
-                     #:show-title? #t
-                     #:line-numbers? #t
-                     #:pad-horiz 80
-                     #:pad-vert 100
-                     ;; Change this if you are on Wayland (wl-copy) or macOS (pbcopy)
+(codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
+                     #:background "#aaaaff"            ; Hex color for the background behind the code window
+                     #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
+                     #:window-controls? #t             ; Show macOS-style window controls
+                     #:show-title? #t                  ; Show the filename in the window title bar
+                     #:line-numbers? #t                ; Show line numbers on the left side
+                     #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
+                     #:pad-vert 100                    ; Vertical padding (pixels) around the code window
+                     ;; Clipboard tool command: defaults to xclip (X11)
+                     ;; Wayland users: "wl-copy -t image/png <"
+                     ;; macOS users: "pbcopy <"
                      #:clipboard-command "xclip -selection clipboard -t image/png -i")
 ```

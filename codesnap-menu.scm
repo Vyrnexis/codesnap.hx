@@ -2,6 +2,7 @@
 (require "helix/misc.scm")
 (require (only-in "ui-utils.hx/picker.scm" show-picker! picker-current-item))
 (require (only-in "ui-utils.hx/picker-model.scm" make-picker))
+(require (only-in "ui-utils.hx/keys.scm" char-is?))
 (require (only-in "helix/components.scm" key-event-enter? key-event-right? key-event-left? key-event-escape? pop-last-component-by-name! event-result/consume))
 (require (only-in "codesnap.scm" 
                   codesnap-execute codesnap-theme codesnap-bg 
@@ -28,10 +29,10 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(key-event-enter? event)
+                                         [(or (key-event-enter? event) (char-is? event #\l))
                                           (codesnap-theme choice)
                                           event-result/consume]
-                                         [(or (key-event-left? event) (key-event-escape? event))
+                                         [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
                                           (pop-last-component-by-name! "codesnap-theme-picker")
                                           event-result/consume]
                                          [else #f]))))])
@@ -51,10 +52,10 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(key-event-enter? event)
+                                         [(or (key-event-enter? event) (char-is? event #\l))
                                           (codesnap-bg (substring choice 0 7))
                                           event-result/consume]
-                                         [(or (key-event-left? event) (key-event-escape? event))
+                                         [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
                                           (pop-last-component-by-name! "codesnap-bg-picker")
                                           event-result/consume]
                                          [else #f]))))])
@@ -82,7 +83,7 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(or (key-event-enter? event) (key-event-right? event))
+                                         [(or (key-event-enter? event) (key-event-right? event) (char-is? event #\l))
                                           (cond
                                             [(equal? choice "Snap to Clipboard") 
                                              (codesnap-execute)
@@ -108,7 +109,7 @@
                                              (codesnap-set-line-numbers! (not (get-codesnap-line-numbers)))
                                              event-result/consume]
                                             [else #f])]
-                                         [(key-event-escape? event)
+                                         [(or (key-event-escape? event) (key-event-left? event) (char-is? event #\h))
                                           (pop-last-component-by-name! "codesnap-main-menu")
                                           event-result/consume]
                                          [else #f]))))])

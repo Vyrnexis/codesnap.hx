@@ -26,9 +26,9 @@ forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 Then add these lines to your `~/.config/helix/helix.scm` file to register the commands:
 
 ```scheme
-(require (only-in "codesnap/codesnap.scm" codesnap codesnap-theme codesnap-bg))
+(require (only-in "codesnap/codesnap.scm" codesnap))
 (require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
-(provide codesnap codesnap-menu codesnap-theme codesnap-bg)
+(provide codesnap codesnap-menu)
 ```
 
 ## Updating
@@ -41,13 +41,32 @@ forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
 
 ## Usage
 
-Make a visual selection (`v` or `x`) of the code you want to capture, then run one of the following commands:
+Make a visual selection (`v` or `x`) of the code you want to capture, then open the command palette (`:`) and run:
 
-- `:codesnap` — Captures the selection and copies it to your clipboard.
+- `:codesnap-menu` — Opens the interactive TUI control panel.
+
+### The CodeSnap Menu
+
+The `:codesnap-menu` is the main interface for CodeSnap. From here, you can instantly snap pictures or toggle your configuration.
+
+**Navigation:**
+- Use **Up / Down** arrows (or `j` / `k`) to navigate the menu items.
+- Use **Right** arrow (or `l` or `Enter`) to toggle switches (ON/OFF) or to expand submenus like `Theme >` and `Background >`.
+- Use **Left** arrow (or `h` or `Escape`) to return to the main menu or close the window.
+
+**Actions:**
+- **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
+- **Snap to File...**: Captures the selection and saves it to `/tmp/codesnap.png`.
+- **Theme**: Opens a picker to select a new syntax highlighting theme.
+- **Background**: Opens a picker to choose a background color for the image.
+- **Toggles**: Toggle Window Controls, Window Titles, or Line Numbers live.
+
+### Direct Commands
+
+If you prefer to bypass the menu, you can use these commands directly:
+
+- `:codesnap` — Captures the selection and copies it to your clipboard immediately using your current settings.
 - `:codesnap <path>` — Saves the screenshot directly to a specific file (e.g. `:codesnap ~/Desktop/code.png`).
-- `:codesnap-menu` — Opens an interactive TUI menu to select actions and change themes visually!
-- `:codesnap-theme <theme_name>` — Overrides the current syntax highlighting theme (e.g. `:codesnap-theme Nord`). Run `silicon --list-themes` in your terminal to see what's installed.
-- `:codesnap-bg <hex>` — Overrides the current background color (e.g. `:codesnap-bg #ffb86c`).
 
 ## Configuration
 

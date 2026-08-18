@@ -18,11 +18,18 @@
 (define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
 
 ;; --- Internal Helpers ---
+(define (normalize-language lang)
+  (cond
+   [(not lang) "txt"]
+   ;; Map Helix languages to Silicon-supported equivalents where they differ
+   [(equal? lang "scheme") "lisp"]
+   [else lang]))
+
 (define (current-language)
   (let* ([focus (editor-focus)]
          [focus-doc-id (editor->doc-id focus)]
          [lang (editor-document->language focus-doc-id)])
-    (if lang lang "txt")))
+    (normalize-language lang)))
 
 (define (bool->flag bool flag)
   (if bool "" flag))

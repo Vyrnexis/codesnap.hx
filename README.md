@@ -1,4 +1,4 @@
-# helix-codesnap
+# codesnap.hx
 
 ![Screenshot of CodeSnap in action](screenshot.png)
 

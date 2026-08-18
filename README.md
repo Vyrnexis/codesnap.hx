@@ -24,15 +24,15 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
    ```
 3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`pbcopy`), you'll need to configure the plugin in your `init.scm`.
 
-## Installation
+## Installation & Setup
 
-Install the plugin using `forge` (the Steel package manager):
+1. Install the plugin using `forge` (the Steel package manager):
 
 ```bash
 forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 ```
 
-Then add these lines to your `~/.config/helix/helix.scm` file to register the commands:
+2. Add these lines to your `~/.config/helix/helix.scm` file to register the commands:
 
 ```scheme
 (require (only-in "codesnap/codesnap.scm" codesnap))
@@ -40,12 +40,25 @@ Then add these lines to your `~/.config/helix/helix.scm` file to register the co
 (provide codesnap codesnap-menu)
 ```
 
-## Updating
+## Configuration
 
-To pull the latest updates for the plugin, run the install command again with the `--force` flag:
+You can make your favorite settings persist across editor restarts by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
 
-```bash
-forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
+```scheme
+(require (only-in "codesnap/codesnap.scm" codesnap-configure!))
+
+(codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
+                     #:background "#aaaaff"            ; Hex color for the background behind the code window
+                     #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
+                     #:window-controls? #t             ; Show macOS-style window controls
+                     #:show-title? #t                  ; Show the filename in the window title bar
+                     #:line-numbers? #t                ; Show line numbers on the left side
+                     #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
+                     #:pad-vert 100                    ; Vertical padding (pixels) around the code window
+                     ;; Clipboard tool command: defaults to xclip (X11)
+                     ;; Wayland users: "wl-copy -t image/png <"
+                     ;; macOS users: "pbcopy <"
+                     #:clipboard-command "xclip -selection clipboard -t image/png -i")
 ```
 
 ## Usage
@@ -84,23 +97,10 @@ If you prefer to bypass the menu, you can use these commands directly:
 - `:codesnap` — Captures the selection and copies it to your clipboard immediately using your current settings.
 - `:codesnap <path>` — Saves the screenshot directly to a specific file (e.g. `:codesnap ~/Desktop/code.png`).
 
-## Configuration
+## Updating
 
-You can make your favorite settings persist across editor restarts by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
+To pull the latest updates for the plugin, run the install command again with the `--force` flag:
 
-```scheme
-(require (only-in "codesnap/codesnap.scm" codesnap-configure!))
-
-(codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
-                     #:background "#aaaaff"            ; Hex color for the background behind the code window
-                     #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
-                     #:window-controls? #t             ; Show macOS-style window controls
-                     #:show-title? #t                  ; Show the filename in the window title bar
-                     #:line-numbers? #t                ; Show line numbers on the left side
-                     #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
-                     #:pad-vert 100                    ; Vertical padding (pixels) around the code window
-                     ;; Clipboard tool command: defaults to xclip (X11)
-                     ;; Wayland users: "wl-copy -t image/png <"
-                     ;; macOS users: "pbcopy <"
-                     #:clipboard-command "xclip -selection clipboard -t image/png -i")
+```bash
+forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
 ```

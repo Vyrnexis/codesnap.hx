@@ -75,11 +75,11 @@
                      " --pad-vert " (number->string *codesnap-pad-vert*)
                      " " (bool->flag *codesnap-window-controls* "--no-window-controls")
                      " " (bool->flag *codesnap-line-numbers* "--no-line-number")
-                     " -o " out-path)])
+                     " -o \"$OUT_FILE\"")])
     (string-append 
-     "rm -f " out-path " && "
-     "silicon -l " lang base-args " 2>/dev/null ; "
-     "[ -f " out-path " ] || silicon -l md " base-args)))
+     "OUT_FILE=\"" out-path "\" ; "
+     "mkdir -p \"$(dirname \"$OUT_FILE\")\" ; "
+     "silicon -l " lang base-args " 2>/dev/null || silicon -l md " base-args)))
 
 ;; --- Commands ---
 
@@ -96,7 +96,7 @@
             [silicon-cmd (build-silicon-args lang filename out-path)]
             [full-cmd (if save-to-file?
                           silicon-cmd
-                          (string-append silicon-cmd " && " *codesnap-clipboard-command* " " out-path))])
+                          (string-append silicon-cmd " && " *codesnap-clipboard-command* " \"$OUT_FILE\""))])
        (helix.run-shell-command full-cmd)
        (if save-to-file?
            (set-status! (string-append "📸 Snap saved to " out-path "!"))
@@ -146,4 +146,3 @@
 
 (provide get-codesnap-shadow-blur get-codesnap-pad-horiz get-codesnap-pad-vert
          codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!)
-

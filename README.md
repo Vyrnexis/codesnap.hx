@@ -68,7 +68,7 @@ The `:codesnap-menu` is the main interface for CodeSnap. From here, you can inst
 
 **Actions:**
 - **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
-- **Snap to File...**: Captures the selection and saves it to `/tmp/codesnap.png`.
+- **Snap to File...**: Captures the selection and saves it to `~/Pictures/codesnap-$(date +%s).png`.
 - **Settings >**: Opens the configuration submenu where you can visually tweak:
   - **Themes** and **Backgrounds** (includes Transparent option!)
   - **Shadow Blur**

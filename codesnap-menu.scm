@@ -189,7 +189,7 @@
                                             [(equal? choice "Snap to File...") 
                                              (if (key-event-enter? event)
                                                  (begin
-                                                   (codesnap-execute "/tmp/codesnap.png")
+                                                   (codesnap-execute "~/Pictures/codesnap-$(date +%s).png")
                                                    (pop-last-component-by-name! "codesnap-main-menu")
                                                    event-result/consume)
                                                  #f)]

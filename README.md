@@ -17,11 +17,16 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
 
 ## Installation
 
-1. Drop `codesnap.scm` into your Helix config directory (usually `~/.config/helix/`).
-2. Add these lines to your `~/.config/helix/helix.scm` file to register the commands:
+Install the plugin using `forge` (the Steel package manager):
+
+```bash
+forge pkg install --git https://github.com/Vyrnexis/Helix-Codesnap.git
+```
+
+Then add these lines to your `~/.config/helix/helix.scm` file to register the commands:
 
 ```scheme
-(require (only-in "codesnap.scm" codesnap codesnap-save codesnap-theme codesnap-bg))
+(require (only-in "codesnap/codesnap.scm" codesnap codesnap-save codesnap-theme codesnap-bg))
 (provide codesnap codesnap-save codesnap-theme codesnap-bg)
 ```
 
@@ -36,7 +41,7 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then run o
 
 ## Configuration
 
-If you want to change the default theme, padding, shadows, or your clipboard utility, open `codesnap.scm` and edit the variables at the top of the file:
+If you want to change the default theme, padding, shadows, or your clipboard utility, you can find the installed file at `~/.local/share/steel/cogs/codesnap/codesnap.scm` and edit the variables at the top of the file:
 
 ```scheme
 (define *codesnap-theme* "Dracula")            

@@ -1,0 +1,33 @@
+(require (prefix-in helix. "helix/commands.scm"))
+(require "helix/misc.scm")
+(require (only-in "ui-utils.hx/menu.scm" show-menu))
+(require (only-in "ui-utils.hx/menu-model.scm" menu-action menu-switch menu-info))
+(require (only-in "ui-utils.hx/picker.scm" show-picker!))
+(require (only-in "ui-utils.hx/picker-model.scm" make-picker))
+(require (only-in "codesnap.scm" codesnap-execute *codesnap-theme* codesnap-theme))
+
+(provide codesnap-menu)
+
+(define (show-theme-picker)
+  (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" "Visual Studio Dark+")]
+         [spec (make-picker #:name "codesnap-theme-picker"
+                            #:items themes
+                            #:on-select (lambda (theme) 
+                                          (codesnap-theme theme)))])
+    (show-picker! spec)))
+
+;;@doc
+;; Open the interactive CodeSnap control panel
+(define (codesnap-menu)
+  ;; Yank immediately to preserve visual selection before popup opens
+  (helix.clipboard-yank)
+  (show-menu "CodeSnap Menu"
+    (list
+      (menu-info "  Take a Snapshot:")
+      (menu-action #\c "Snap to Clipboard" (lambda (switches) (codesnap-execute)))
+      (menu-action #\f "Snap to File (/tmp/codesnap.png)" (lambda (switches) (codesnap-execute "/tmp/codesnap.png")))
+      (menu-info " ")
+      (menu-info "  Configuration:")
+      (menu-action #\t (string-append "Change Theme [" *codesnap-theme* "]")
+                   (lambda (switches) (show-theme-picker)))
+      (menu-action #\q "Cancel" (lambda (switches) #f)))))

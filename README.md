@@ -27,7 +27,8 @@ Then add these lines to your `~/.config/helix/helix.scm` file to register the co
 
 ```scheme
 (require (only-in "codesnap/codesnap.scm" codesnap codesnap-theme codesnap-bg))
-(provide codesnap codesnap-theme codesnap-bg)
+(require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
+(provide codesnap codesnap-menu codesnap-theme codesnap-bg)
 ```
 
 ## Updating
@@ -44,6 +45,7 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then run o
 
 - `:codesnap` — Captures the selection and copies it to your clipboard.
 - `:codesnap <path>` — Saves the screenshot directly to a specific file (e.g. `:codesnap ~/Desktop/code.png`).
+- `:codesnap-menu` — Opens an interactive TUI menu to select actions and change themes visually!
 - `:codesnap-theme <theme_name>` — Overrides the current syntax highlighting theme (e.g. `:codesnap-theme Nord`). Run `silicon --list-themes` in your terminal to see what's installed.
 - `:codesnap-bg <hex>` — Overrides the current background color (e.g. `:codesnap-bg #ffb86c`).
 

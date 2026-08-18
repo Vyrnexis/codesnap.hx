@@ -3,7 +3,7 @@
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 
-(provide codesnap codesnap-theme codesnap-bg codesnap-configure!)
+(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure!)
 
 ;; --- Default Configuration Options ---
 (define *codesnap-theme* "Dracula")            ; Syntax highlighting theme (run `silicon --list-themes` for options)
@@ -84,8 +84,7 @@
 
 ;;@doc
 ;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
-(define (codesnap . args)
-  (helix.clipboard-yank)
+(define (codesnap-execute . args)
   (enqueue-thread-local-callback-with-delay
    100
    (lambda ()
@@ -101,6 +100,12 @@
        (if save-to-file?
            (set-status! (string-append "📸 Snap saved to " out-path "!"))
            (set-status! (string-append "📸 Snap saved to clipboard! Theme: " *codesnap-theme*)))))))
+
+;;@doc
+;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
+(define (codesnap . args)
+  (helix.clipboard-yank)
+  (apply codesnap-execute args))
 
 ;;@doc
 ;; Changes the active codesnap theme. Example: :codesnap-theme Nord

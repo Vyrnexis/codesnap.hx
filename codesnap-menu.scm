@@ -21,13 +21,9 @@
 (define (codesnap-menu)
   ;; Yank immediately to preserve visual selection before popup opens
   (helix.clipboard-yank)
-  (show-menu "CodeSnap Menu"
+  (show-menu "CodeSnap Options"
     (list
-      (menu-info "  Take a Snapshot:")
-      (menu-action #\c "Snap to Clipboard" (lambda (switches) (codesnap-execute)))
-      (menu-action #\f "Snap to File (/tmp/codesnap.png)" (lambda (switches) (codesnap-execute "/tmp/codesnap.png")))
-      (menu-info " ")
-      (menu-info "  Configuration:")
-      (menu-action #\t (string-append "Change Theme [" *codesnap-theme* "]")
-                   (lambda (switches) (show-theme-picker)))
+      (menu-action #\s "Snap to Clipboard" (lambda (switches) (codesnap-execute)))
+      (menu-action #\f "Snap to File..." (lambda (switches) (codesnap-execute "/tmp/codesnap.png")))
+      (menu-action #\t (string-append "Theme: " *codesnap-theme*) (lambda (switches) (show-theme-picker)))
       (menu-action #\q "Cancel" (lambda (switches) #f)))))

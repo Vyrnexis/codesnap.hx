@@ -17,6 +17,7 @@
 (define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i") ; Command used to copy to clipboard
 
 ;; --- Configuration API ---
+
 ;;@doc
 ;; Configures codesnap defaults. Best called from your init.scm!
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
@@ -82,7 +83,7 @@
 
 ;; --- Commands ---
 
-;;@doc
+
 ;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
 (define (codesnap-execute . args)
   (enqueue-thread-local-callback-with-delay
@@ -101,19 +102,20 @@
            (set-status! (string-append "📸 Snap saved to " out-path "!"))
            (set-status! (string-append "📸 Snap saved to clipboard! Theme: " *codesnap-theme*)))))))
 
+
 ;;@doc
 ;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
 (define (codesnap . args)
   (helix.clipboard-yank)
   (apply codesnap-execute args))
 
-;;@doc
+
 ;; Changes the active codesnap theme. Example: :codesnap-theme Nord
 (define (codesnap-theme theme)
   (set! *codesnap-theme* theme)
   (set-status! (string-append "🎨 CodeSnap theme set to: " theme)))
 
-;;@doc
+
 ;; Changes the background color (Hex). Example: :codesnap-bg #ffb86c
 (define (codesnap-bg hex)
   (set! *codesnap-background* hex)

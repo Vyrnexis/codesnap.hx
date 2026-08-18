@@ -29,8 +29,12 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(or (key-event-enter? event) (char-is? event #\l))
+                                         [(char-is? event #\space)
                                           (codesnap-theme choice)
+                                          event-result/consume]
+                                         [(key-event-enter? event)
+                                          (codesnap-theme choice)
+                                          (pop-last-component-by-name! "codesnap-theme-picker")
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
                                           (pop-last-component-by-name! "codesnap-theme-picker")
@@ -52,8 +56,12 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(or (key-event-enter? event) (char-is? event #\l))
+                                         [(char-is? event #\space)
                                           (codesnap-bg (substring choice 0 7))
+                                          event-result/consume]
+                                         [(key-event-enter? event)
+                                          (codesnap-bg (substring choice 0 7))
+                                          (pop-last-component-by-name! "codesnap-bg-picker")
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
                                           (pop-last-component-by-name! "codesnap-bg-picker")
@@ -83,33 +91,44 @@
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
                                        (cond
-                                         [(or (key-event-enter? event) (key-event-right? event) (char-is? event #\l))
+                                         [(or (key-event-enter? event) (key-event-right? event) (char-is? event #\l) (char-is? event #\space))
                                           (cond
                                             [(equal? choice "Snap to Clipboard") 
-                                             (codesnap-execute)
-                                             (pop-last-component-by-name! "codesnap-main-menu")
-                                             event-result/consume]
+                                             (if (key-event-enter? event)
+                                                 (begin
+                                                   (codesnap-execute)
+                                                   (pop-last-component-by-name! "codesnap-main-menu")
+                                                   event-result/consume)
+                                                 #f)]
                                             [(equal? choice "Snap to File...") 
-                                             (codesnap-execute "/tmp/codesnap.png")
-                                             (pop-last-component-by-name! "codesnap-main-menu")
-                                             event-result/consume]
+                                             (if (key-event-enter? event)
+                                                 (begin
+                                                   (codesnap-execute "/tmp/codesnap.png")
+                                                   (pop-last-component-by-name! "codesnap-main-menu")
+                                                   event-result/consume)
+                                                 #f)]
                                             [(equal? choice "Theme") 
-                                             (show-theme-picker)
-                                             event-result/consume]
+                                             (if (not (char-is? event #\space))
+                                                 (begin (show-theme-picker) event-result/consume)
+                                                 #f)]
                                             [(equal? choice "Background") 
-                                             (show-background-picker)
-                                             event-result/consume]
+                                             (if (not (char-is? event #\space))
+                                                 (begin (show-background-picker) event-result/consume)
+                                                 #f)]
                                             [(equal? choice "Window Controls") 
-                                             (codesnap-set-window-controls! (not (get-codesnap-window-controls)))
-                                             event-result/consume]
+                                             (begin
+                                               (codesnap-set-window-controls! (not (get-codesnap-window-controls)))
+                                               event-result/consume)]
                                             [(equal? choice "Window Title") 
-                                             (codesnap-set-show-title! (not (get-codesnap-show-title)))
-                                             event-result/consume]
+                                             (begin
+                                               (codesnap-set-show-title! (not (get-codesnap-show-title)))
+                                               event-result/consume)]
                                             [(equal? choice "Line Numbers") 
-                                             (codesnap-set-line-numbers! (not (get-codesnap-line-numbers)))
-                                             event-result/consume]
+                                             (begin
+                                               (codesnap-set-line-numbers! (not (get-codesnap-line-numbers)))
+                                               event-result/consume)]
                                             [else #f])]
-                                         [(or (key-event-escape? event) (key-event-left? event) (char-is? event #\h))
+                                         [(key-event-escape? event)
                                           (pop-last-component-by-name! "codesnap-main-menu")
                                           event-result/consume]
                                          [else #f]))))])

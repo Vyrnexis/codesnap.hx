@@ -17,6 +17,11 @@
   (and (>= (string-length str) (string-length prefix))
        (equal? (substring str 0 (string-length prefix)) prefix)))
 
+(define (extract-color str)
+  (cond
+    [(starts-with? str "#00000000") "#00000000"]
+    [else (substring str 0 7)]))
+
 (define (show-theme-picker)
   (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" "Visual Studio Dark+")]
          [spec (make-picker #:name "codesnap-theme-picker"
@@ -45,7 +50,7 @@
     (show-picker! spec)))
 
 (define (show-background-picker)
-  (let* ([colors '("#aaaaff (Dracula)" "#2e3440 (Nord)" "#282c34 (One Dark)" "#000000 (Black)" "#ffffff (White)")]
+  (let* ([colors '("#aaaaff (Dracula)" "#2e3440 (Nord)" "#282c34 (One Dark)" "#000000 (Black)" "#ffffff (White)" "#00000000 (Transparent)")]
          [spec (make-picker #:name "codesnap-bg-picker"
                             #:items colors
                             #:item-label (lambda (item)
@@ -59,10 +64,10 @@
                                             [choice (picker-current-item state)])
                                        (cond
                                          [(char-is? event #\space)
-                                          (codesnap-bg (substring choice 0 7))
+                                          (codesnap-bg (extract-color choice))
                                           event-result/consume]
                                          [(key-event-enter? event)
-                                          (codesnap-bg (substring choice 0 7))
+                                          (codesnap-bg (extract-color choice))
                                           (pop-last-component-by-name! "codesnap-bg-picker")
                                           event-result/consume]
                                          [(or (key-event-left? event) (key-event-escape? event) (char-is? event #\h))
@@ -71,11 +76,11 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
-(define (show-number-picker name current-val setter! options)
+(define (show-number-picker name getter setter! options)
   (let* ([spec (make-picker #:name name
                             #:items options
                             #:item-label (lambda (item)
-                                           (if (equal? item (number->string current-val))
+                                           (if (equal? item (number->string (getter)))
                                                (string-append "✓ " item)
                                                (string-append "  " item)))
                             #:filter? #f
@@ -130,13 +135,13 @@
                                                  (begin (show-background-picker) event-result/consume) #f)]
                                             [(equal? choice "Shadow Blur") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-shadow-blur-picker" (get-codesnap-shadow-blur) codesnap-set-shadow-blur! '("0" "10" "15" "20" "30" "50")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-shadow-blur-picker" get-codesnap-shadow-blur codesnap-set-shadow-blur! '("0" "10" "15" "20" "30" "50")) event-result/consume) #f)]
                                             [(equal? choice "Horizontal Padding") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-pad-horiz-picker" (get-codesnap-pad-horiz) codesnap-set-pad-horiz! '("0" "20" "40" "80" "100" "120")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-pad-horiz-picker" get-codesnap-pad-horiz codesnap-set-pad-horiz! '("0" "20" "40" "80" "100" "120")) event-result/consume) #f)]
                                             [(equal? choice "Vertical Padding") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-pad-vert-picker" (get-codesnap-pad-vert) codesnap-set-pad-vert! '("0" "20" "40" "80" "100" "150")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-pad-vert-picker" get-codesnap-pad-vert codesnap-set-pad-vert! '("0" "20" "40" "80" "100" "150")) event-result/consume) #f)]
                                             
                                             ;; Toggle Switches
                                             [(equal? choice "Window Controls") 

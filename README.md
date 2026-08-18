@@ -51,8 +51,11 @@ The `:codesnap-menu` is the main interface for CodeSnap. From here, you can inst
 
 **Navigation:**
 - Use **Up / Down** arrows (or `j` / `k`) to navigate the menu items.
-- Use **Right** arrow (or `l` or `Enter`) to toggle switches (ON/OFF) or to expand submenus like `Theme >` and `Background >`.
-- Use **Left** arrow (or `h` or `Escape`) to return to the main menu or close the window.
+- Use **Enter** to expand submenus or execute "Snap" actions.
+- Use **Space** to toggle switches (ON/OFF) or to select an active Theme/Background without closing the menu.
+- Use **Right** arrow (or `l`) to expand submenus without executing actions.
+- Use **Left** arrow (or `h`) to return to the main menu from a submenu.
+- Use **Escape** to close the window from anywhere.
 
 **Actions:**
 - **Snap to Clipboard**: Captures the selection and copies it to your clipboard.

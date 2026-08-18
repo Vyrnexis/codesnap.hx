@@ -20,7 +20,7 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
 Install the plugin using `forge` (the Steel package manager):
 
 ```bash
-forge pkg install --git https://github.com/Vyrnexis/Helix-Codesnap.git
+forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 ```
 
 Then add these lines to your `~/.config/helix/helix.scm` file to register the commands:

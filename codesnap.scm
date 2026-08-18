@@ -3,7 +3,7 @@
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 
-(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure! *codesnap-theme*)
+(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure! *codesnap-theme* *codesnap-background* *codesnap-window-controls* *codesnap-line-numbers* *codesnap-show-title*)
 
 ;; --- Default Configuration Options ---
 (define *codesnap-theme* "Dracula")            ; Syntax highlighting theme (run `silicon --list-themes` for options)

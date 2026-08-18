@@ -24,7 +24,7 @@
                             #:filter? #t
                             #:close-mode 'pop
                             #:on-accept (lambda (choice) 
-                                          (codesnap-bg (car (string-split choice " ")))
+                                          (codesnap-bg (substring choice 0 7))
                                           (codesnap-menu-impl #f)))])
     (show-picker! spec)))
 

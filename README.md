@@ -26,8 +26,8 @@ forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 Then add these lines to your `~/.config/helix/helix.scm` file to register the commands:
 
 ```scheme
-(require (only-in "codesnap/codesnap.scm" codesnap codesnap-save codesnap-theme codesnap-bg))
-(provide codesnap codesnap-save codesnap-theme codesnap-bg)
+(require (only-in "codesnap/codesnap.scm" codesnap codesnap-theme codesnap-bg))
+(provide codesnap codesnap-theme codesnap-bg)
 ```
 
 ## Usage
@@ -35,7 +35,7 @@ Then add these lines to your `~/.config/helix/helix.scm` file to register the co
 Make a visual selection (`v` or `x`) of the code you want to capture, then run one of the following commands:
 
 - `:codesnap` — Captures the selection and copies it to your clipboard.
-- `:codesnap-save <path>` — Saves the screenshot to a specific file instead of the clipboard (e.g. `:codesnap-save ~/Desktop/code.png`).
+- `:codesnap <path>` — Saves the screenshot directly to a specific file (e.g. `:codesnap ~/Desktop/code.png`).
 - `:codesnap-theme <theme_name>` — Overrides the current syntax highlighting theme (e.g. `:codesnap-theme Nord`). Run `silicon --list-themes` in your terminal to see what's installed.
 - `:codesnap-bg <hex>` — Overrides the current background color (e.g. `:codesnap-bg #ffb86c`).
 

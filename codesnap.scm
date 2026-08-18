@@ -3,7 +3,7 @@
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 
-(provide codesnap codesnap-save codesnap-theme codesnap-bg codesnap-configure!)
+(provide codesnap codesnap-theme codesnap-bg codesnap-configure!)
 
 ;; --- Default Configuration Options ---
 (define *codesnap-theme* "Dracula")
@@ -16,8 +16,7 @@
 (define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
 
 ;; --- Configuration API ---
-;;@doc
-;; Configures codesnap defaults. Best called from your init.scm!
+;; (Removed doc comment here so it doesn't show in the Helix command palette!)
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
                              #:background [background *codesnap-background*]
                              #:shadow-blur [shadow-blur *codesnap-shadow-blur*]
@@ -70,30 +69,23 @@
 ;; --- Commands ---
 
 ;;@doc
-;; Captures the selection as an image and copies it to your clipboard
-(define (codesnap)
+;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
+(define (codesnap . args)
   (helix.clipboard-yank)
   (enqueue-thread-local-callback-with-delay
    100
    (lambda ()
      (let* ([lang (current-language)]
-            [tmp-file "/tmp/codesnap_capture.png"]
-            [silicon-cmd (build-silicon-args lang tmp-file)]
-            [full-cmd (string-append silicon-cmd " && " *codesnap-clipboard-command* " " tmp-file)])
+            [save-to-file? (not (null? args))]
+            [out-path (if save-to-file? (car args) "/tmp/codesnap_capture.png")]
+            [silicon-cmd (build-silicon-args lang out-path)]
+            [full-cmd (if save-to-file?
+                          silicon-cmd
+                          (string-append silicon-cmd " && " *codesnap-clipboard-command* " " out-path))])
        (helix.run-shell-command full-cmd)
-       (set-status! (string-append "📸 Snap saved to clipboard! Theme: " *codesnap-theme*))))))
-
-;;@doc
-;; Captures the selection and saves it to a specific file path. Example: :codesnap-save ~/Desktop/code.png
-(define (codesnap-save path)
-  (helix.clipboard-yank)
-  (enqueue-thread-local-callback-with-delay
-   100
-   (lambda ()
-     (let* ([lang (current-language)]
-            [silicon-cmd (build-silicon-args lang path)])
-       (helix.run-shell-command silicon-cmd)
-       (set-status! (string-append "📸 Snap saved to " path "!"))))))
+       (if save-to-file?
+           (set-status! (string-append "📸 Snap saved to " out-path "!"))
+           (set-status! (string-append "📸 Snap saved to clipboard! Theme: " *codesnap-theme*)))))))
 
 ;;@doc
 ;; Changes the active codesnap theme. Example: :codesnap-theme Nord

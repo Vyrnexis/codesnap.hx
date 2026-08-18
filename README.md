@@ -30,6 +30,14 @@ Then add these lines to your `~/.config/helix/helix.scm` file to register the co
 (provide codesnap codesnap-theme codesnap-bg)
 ```
 
+## Updating
+
+To pull the latest updates for the plugin, run the install command again with the `--force` flag:
+
+```bash
+forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
+```
+
 ## Usage
 
 Make a visual selection (`v` or `x`) of the code you want to capture, then run one of the following commands:

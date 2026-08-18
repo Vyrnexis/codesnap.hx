@@ -1,5 +1,7 @@
 # helix-codesnap
 
+![Screenshot of CodeSnap in action](screenshot.png)
+
 A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [Steel plugin branch](https://github.com/mattwparas/helix)) that takes screenshots of your code and copies them to your clipboard. 
 
 Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your current visual selection to [silicon](https://github.com/Aloxaf/silicon) to generate the image.

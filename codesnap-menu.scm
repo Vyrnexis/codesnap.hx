@@ -3,27 +3,52 @@
 (require (only-in "ui-utils.hx/picker.scm" show-picker! picker-current-item))
 (require (only-in "ui-utils.hx/picker-model.scm" make-picker))
 (require (only-in "ui-utils.hx/keys.scm" char-is?))
-(require (only-in "helix/components.scm" key-event-enter? key-event-right? key-event-left? key-event-escape? pop-last-component-by-name! event-result/consume))
+(require (only-in "helix/components.scm" 
+                  key-event-enter? 
+                  key-event-right? 
+                  key-event-left? 
+                  key-event-escape? 
+                  pop-last-component-by-name! 
+                  event-result/consume))
 (require (only-in "codesnap.scm" 
-                  codesnap-execute codesnap-theme codesnap-bg 
-                  get-codesnap-theme get-codesnap-bg get-codesnap-window-controls get-codesnap-show-title get-codesnap-line-numbers
-                  codesnap-set-window-controls! codesnap-set-show-title! codesnap-set-line-numbers!
-                  get-codesnap-shadow-blur get-codesnap-pad-horiz get-codesnap-pad-vert
-                  codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!))
+                  codesnap-execute 
+                  codesnap-theme 
+                  codesnap-bg 
+                  get-codesnap-theme 
+                  get-codesnap-bg 
+                  get-codesnap-window-controls 
+                  get-codesnap-show-title 
+                  get-codesnap-line-numbers
+                  codesnap-set-window-controls! 
+                  codesnap-set-show-title! 
+                  codesnap-set-line-numbers!
+                  get-codesnap-shadow-blur 
+                  get-codesnap-pad-horiz 
+                  get-codesnap-pad-vert
+                  codesnap-set-shadow-blur! 
+                  codesnap-set-pad-horiz! 
+                  codesnap-set-pad-vert!))
 
 (provide codesnap-menu)
 
+;; Determines if target string begins with the given prefix.
 (define (starts-with? str prefix)
   (and (>= (string-length str) (string-length prefix))
        (equal? (substring str 0 (string-length prefix)) prefix)))
 
+;; Extracts hexadecimal color value from menu label string.
 (define (extract-color str)
   (cond
     [(starts-with? str "#00000000") "#00000000"]
     [else (substring str 0 7)]))
 
+;; Displays the interactive syntax theme selection picker.
 (define (show-theme-picker)
-  (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" "Visual Studio Dark+")]
+  (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" 
+                   "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" 
+                   "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" 
+                   "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" 
+                   "Visual Studio Dark+" "gruvbox-dark" "gruvbox-light" "zenburn")]
          [spec (make-picker #:name "codesnap-theme-picker"
                             #:items themes
                             #:item-label (lambda (item)
@@ -49,12 +74,20 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
+;; Displays the interactive background color selection picker.
 (define (show-background-picker)
-  (let* ([colors '("#aaaaff (Dracula)" "#2e3440 (Nord)" "#282c34 (One Dark)" "#000000 (Black)" "#ffffff (White)" "#00000000 (Transparent)")]
+  (let* ([colors '("#aaaaff (Dracula)" 
+                   "#2e3440 (Nord)" 
+                   "#282c34 (One Dark)" 
+                   "#282828 (Gruvbox)"
+                   "#002b36 (Solarized)"
+                   "#000000 (Black)" 
+                   "#ffffff (White)" 
+                   "#00000000 (Transparent)")]
          [spec (make-picker #:name "codesnap-bg-picker"
                             #:items colors
                             #:item-label (lambda (item)
-                                           (if (starts-with? item (get-codesnap-bg))
+                                           (if (equal? (extract-color item) (get-codesnap-bg))
                                                (string-append "✓ " item)
                                                (string-append "  " item)))
                             #:filter? #t
@@ -76,6 +109,7 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
+;; Displays a numeric value picker for dimension and blur configuration.
 (define (show-number-picker name getter setter! options)
   (let* ([spec (make-picker #:name name
                             #:items options
@@ -102,6 +136,7 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
+;; Displays the settings configuration submenu.
 (define (show-settings-picker)
   (let* ([items '("Theme" "Background" "Shadow Blur" "Horizontal Padding" "Vertical Padding" "Window Controls" "Window Title" "Line Numbers")]
          [spec (make-picker #:name "codesnap-settings-menu"
@@ -126,7 +161,6 @@
                                        (cond
                                          [(or (key-event-enter? event) (key-event-right? event) (char-is? event #\l) (char-is? event #\space))
                                           (cond
-                                            ;; Submenu Expansions
                                             [(equal? choice "Theme") 
                                              (if (not (char-is? event #\space))
                                                  (begin (show-theme-picker) event-result/consume) #f)]
@@ -142,8 +176,6 @@
                                             [(equal? choice "Vertical Padding") 
                                              (if (not (char-is? event #\space))
                                                  (begin (show-number-picker "codesnap-pad-vert-picker" get-codesnap-pad-vert codesnap-set-pad-vert! '("0" "20" "40" "80" "100" "150")) event-result/consume) #f)]
-                                            
-                                            ;; Toggle Switches
                                             [(equal? choice "Window Controls") 
                                              (begin
                                                (codesnap-set-window-controls! (not (get-codesnap-window-controls)))
@@ -163,6 +195,7 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
+;; Core implementation of the root CodeSnap interactive menu.
 (define (codesnap-menu-impl yank?)
   (when yank?
     (helix.clipboard-yank))
@@ -189,7 +222,7 @@
                                             [(equal? choice "Snap to File...") 
                                              (if (key-event-enter? event)
                                                  (begin
-                                                   (codesnap-execute "~/Pictures/codesnap-$(date +%s).png")
+                                                   (codesnap-execute "~/Pictures/codesnap-capture.png")
                                                    (pop-last-component-by-name! "codesnap-main-menu")
                                                    event-result/consume)
                                                  #f)]
@@ -197,13 +230,12 @@
                                              (show-settings-picker)
                                              event-result/consume]
                                             [else #f])]
-                                         [(key-event-escape? event)
+                                         [(or (key-event-escape? event) (key-event-left? event) (char-is? event #\h) (char-is? event #\q))
                                           (pop-last-component-by-name! "codesnap-main-menu")
                                           event-result/consume]
                                          [else #f]))))])
     (show-picker! spec)))
 
-;;@doc
-;; Open the interactive CodeSnap control panel
+;; Opens the root interactive CodeSnap control panel.
 (define (codesnap-menu)
   (codesnap-menu-impl #t))

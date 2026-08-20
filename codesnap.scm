@@ -3,23 +3,46 @@
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 
-(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure! *codesnap-theme* *codesnap-background* *codesnap-window-controls* *codesnap-line-numbers* *codesnap-show-title*)
+(provide codesnap 
+         codesnap-execute 
+         codesnap-theme 
+         codesnap-bg 
+         codesnap-configure!
+         *codesnap-theme* 
+         *codesnap-background* 
+         *codesnap-shadow-blur*
+         *codesnap-window-controls* 
+         *codesnap-show-title* 
+         *codesnap-line-numbers* 
+         *codesnap-pad-horiz* 
+         *codesnap-pad-vert* 
+         *codesnap-clipboard-command*
+         get-codesnap-theme 
+         get-codesnap-bg 
+         get-codesnap-shadow-blur 
+         get-codesnap-window-controls 
+         get-codesnap-show-title 
+         get-codesnap-line-numbers 
+         get-codesnap-pad-horiz 
+         get-codesnap-pad-vert
+         codesnap-set-shadow-blur! 
+         codesnap-set-window-controls! 
+         codesnap-set-show-title! 
+         codesnap-set-line-numbers! 
+         codesnap-set-pad-horiz! 
+         codesnap-set-pad-vert!)
 
-;; --- Default Configuration Options ---
-(define *codesnap-theme* "Dracula")            ; Syntax highlighting theme (run `silicon --list-themes` for options)
-(define *codesnap-background* "#aaaaff")       ; Hex color for the background behind the code window
-(define *codesnap-shadow-blur* 15)             ; Size of the drop shadow blur (set to 0 to disable)
-(define *codesnap-window-controls* #true)      ; Show macOS-style window controls (red/yellow/green dots)
-(define *codesnap-show-title* #true)           ; Show the current filename in the window title bar
-(define *codesnap-line-numbers* #true)         ; Show line numbers on the left side
-(define *codesnap-pad-horiz* 80)               ; Horizontal padding (pixels) around the code window
-(define *codesnap-pad-vert* 100)               ; Vertical padding (pixels) around the code window
-(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i") ; Command used to copy to clipboard
+(define *codesnap-theme* "Dracula")
+(define *codesnap-background* "#aaaaff")
+(define *codesnap-shadow-blur* 15)
+(define *codesnap-window-controls* #true)
+(define *codesnap-show-title* #true)
+(define *codesnap-line-numbers* #true)
+(define *codesnap-pad-horiz* 80)
+(define *codesnap-pad-vert* 100)
+(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
 
-;; --- Configuration API ---
-
-;;@doc
-;; Configures codesnap defaults. Best called from your init.scm!
+;; Configures default settings across all codesnap operations.
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
                              #:background [background *codesnap-background*]
                              #:shadow-blur [shadow-blur *codesnap-shadow-blur*]
@@ -39,31 +62,48 @@
   (set! *codesnap-pad-vert* pad-vert)
   (set! *codesnap-clipboard-command* clipboard-command))
 
-;; --- Internal Helpers ---
+;; Normalizes editor language identifiers to Silicon-supported syntax names.
 (define (normalize-language lang)
   (cond
-   [(not lang) "txt"]
-   [(equal? lang "scheme") "lisp"]
+   [(not lang) "markdown"]
+   [(or (equal? lang "scheme") (equal? lang "scm") (equal? lang "steel")) "lisp"]
+   [(or (equal? lang "txt") (equal? lang "text") (equal? lang "plaintext")) "markdown"]
    [else lang]))
 
+;; Extracts the filename component from a path string without shell execution.
+(define (path-basename path)
+  (if (not path)
+      #f
+      (let loop ([idx (- (string-length path) 1)])
+        (cond
+          [(< idx 0) path]
+          [(char=? (string-ref path idx) #\/)
+           (substring path (+ idx 1) (string-length path))]
+          [else (loop (- idx 1))]))))
+
+;; Retrieves and normalizes the language of the currently focused document.
 (define (current-language)
   (let* ([focus (editor-focus)]
          [focus-doc-id (editor->doc-id focus)]
          [lang (editor-document->language focus-doc-id)])
     (normalize-language lang)))
 
+;; Retrieves the absolute path of the currently focused document.
 (define (current-filename)
   (let* ([focus (editor-focus)]
          [focus-doc-id (editor->doc-id focus)]
          [path (editor-document->path focus-doc-id)])
     (if path path #f)))
 
+;; Converts boolean state into the corresponding Silicon disable flag.
 (define (bool->flag bool flag)
   (if bool "" flag))
 
+;; Constructs the shell command pipeline for Silicon image rendering.
 (define (build-silicon-args lang filename out-path)
-  (let* ([title-arg (if (and *codesnap-show-title* filename)
-                        (string-append " --window-title \"$(basename '" filename "')\"")
+  (let* ([base-name (path-basename filename)]
+         [title-arg (if (and *codesnap-show-title* base-name)
+                        (string-append " --window-title \"" base-name "\"")
                         "")]
          [base-args (string-append
                      " --from-clipboard "
@@ -78,13 +118,11 @@
                      " -o \"$OUT_FILE\"")])
     (string-append 
      "OUT_FILE=\"" out-path "\" ; "
+     "case \"$OUT_FILE\" in \"~\"*) OUT_FILE=\"$HOME${OUT_FILE#\\~}\" ;; esac ; "
      "mkdir -p \"$(dirname \"$OUT_FILE\")\" ; "
-     "silicon -l " lang base-args " 2>/dev/null || silicon -l md " base-args)))
+     "(silicon -l " lang base-args " 2>/dev/null || silicon -l markdown " base-args ")")))
 
-;; --- Commands ---
-
-
-;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
+;; Executes screenshot rendering and clipboard or file export.
 (define (codesnap-execute . args)
   (enqueue-thread-local-callback-with-delay
    100
@@ -99,50 +137,62 @@
                           (string-append silicon-cmd " && " *codesnap-clipboard-command* " \"$OUT_FILE\""))])
        (helix.run-shell-command full-cmd)
        (if save-to-file?
-           (set-status! (string-append "📸 Snap saved to " out-path "!"))
-           (set-status! (string-append "📸 Snap saved to clipboard! Theme: " *codesnap-theme*)))))))
+           (set-status! (string-append "Snap saved to: " out-path))
+           (set-status! (string-append "Snap copied to clipboard. Theme: " *codesnap-theme*)))))))
 
-
-;;@doc
-;; Capture selection. Run `:codesnap` for clipboard, or `:codesnap ~/path.png` to save to file.
+;; Copies current visual selection to system clipboard and executes capture.
 (define (codesnap . args)
   (helix.clipboard-yank)
   (apply codesnap-execute args))
 
-
-;; Changes the active codesnap theme. Example: :codesnap-theme Nord
+;; Sets the active syntax highlighting theme.
 (define (codesnap-theme theme)
   (set! *codesnap-theme* theme)
-  (set-status! (string-append "🎨 CodeSnap theme set to: " theme)))
+  (set-status! (string-append "CodeSnap theme: " theme)))
 
-
-;; Changes the background color (Hex). Example: :codesnap-bg #ffb86c
+;; Sets the active background color hex code.
 (define (codesnap-bg hex)
   (set! *codesnap-background* hex)
-  (set-status! (string-append "🎨 CodeSnap background set to: " hex)))
+  (set-status! (string-append "CodeSnap background: " hex)))
 
-;; Getters for UI
+;; Retrieves active theme name.
 (define (get-codesnap-theme) *codesnap-theme*)
+
+;; Retrieves active background hex color.
 (define (get-codesnap-bg) *codesnap-background*)
+
+;; Retrieves window control visibility state.
 (define (get-codesnap-window-controls) *codesnap-window-controls*)
+
+;; Retrieves window title bar visibility state.
 (define (get-codesnap-show-title) *codesnap-show-title*)
+
+;; Retrieves line number visibility state.
 (define (get-codesnap-line-numbers) *codesnap-line-numbers*)
-(provide get-codesnap-theme get-codesnap-bg get-codesnap-window-controls get-codesnap-show-title get-codesnap-line-numbers)
 
-;; Setters for UI
-(define (codesnap-set-window-controls! val) (set! *codesnap-window-controls* val))
-(define (codesnap-set-show-title! val) (set! *codesnap-show-title* val))
-(define (codesnap-set-line-numbers! val) (set! *codesnap-line-numbers* val))
-(provide codesnap-set-window-controls! codesnap-set-show-title! codesnap-set-line-numbers!)
-
-;; --- Advanced Configuration and Persistence ---
+;; Retrieves shadow blur radius.
 (define (get-codesnap-shadow-blur) *codesnap-shadow-blur*)
+
+;; Retrieves horizontal padding value.
 (define (get-codesnap-pad-horiz) *codesnap-pad-horiz*)
+
+;; Retrieves vertical padding value.
 (define (get-codesnap-pad-vert) *codesnap-pad-vert*)
 
-(define (codesnap-set-shadow-blur! val) (set! *codesnap-shadow-blur* val))
-(define (codesnap-set-pad-horiz! val) (set! *codesnap-pad-horiz* val))
-(define (codesnap-set-pad-vert! val) (set! *codesnap-pad-vert* val))
+;; Updates window control visibility.
+(define (codesnap-set-window-controls! val) (set! *codesnap-window-controls* val))
 
-(provide get-codesnap-shadow-blur get-codesnap-pad-horiz get-codesnap-pad-vert
-         codesnap-set-shadow-blur! codesnap-set-pad-horiz! codesnap-set-pad-vert!)
+;; Updates window title visibility.
+(define (codesnap-set-show-title! val) (set! *codesnap-show-title* val))
+
+;; Updates line number visibility.
+(define (codesnap-set-line-numbers! val) (set! *codesnap-line-numbers* val))
+
+;; Updates shadow blur radius.
+(define (codesnap-set-shadow-blur! val) (set! *codesnap-shadow-blur* val))
+
+;; Updates horizontal padding.
+(define (codesnap-set-pad-horiz! val) (set! *codesnap-pad-horiz* val))
+
+;; Updates vertical padding.
+(define (codesnap-set-pad-vert! val) (set! *codesnap-pad-vert* val))

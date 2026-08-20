@@ -2,7 +2,7 @@
 
 ![Screenshot of CodeSnap in action](screenshots/screenshot.png)
 
-A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [Steel plugin branch](https://github.com/mattwparas/helix)) that takes screenshots of your code and copies them to your clipboard. 
+A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [Steel plugin branch](https://github.com/mattwparas/helix)) that takes screenshots of your code and copies them to your clipboard.
 
 Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your current visual selection to [silicon](https://github.com/Aloxaf/silicon) to generate the image.
 
@@ -22,7 +22,7 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
    ```bash
    cargo install silicon
    ```
-3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`pbcopy`), you'll need to configure the plugin in your `init.scm`.
+3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`impbcopy` or `osascript`), configure the plugin in your `init.scm`.
 
 ## Installation & Setup
 
@@ -32,21 +32,19 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
 forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 ```
 
-2. Add these lines to your `~/.config/helix/helix.scm` file to register the commands:
+2. Add these lines to your `~/.config/helix/init.scm` file to register the commands:
 
 ```scheme
-(require (only-in "codesnap/codesnap.scm" codesnap))
+(require (only-in "codesnap/codesnap.scm" codesnap codesnap-configure!))
 (require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
 (provide codesnap codesnap-menu)
 ```
 
 ## Configuration
 
-You can make your favorite settings persist across editor restarts by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
+You can customize your default settings across editor sessions by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
 
 ```scheme
-(require (only-in "codesnap/codesnap.scm" codesnap-configure!))
-
 (codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
                      #:background "#aaaaff"            ; Hex color for the background behind the code window
                      #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
@@ -57,7 +55,7 @@ You can make your favorite settings persist across editor restarts by calling `c
                      #:pad-vert 100                    ; Vertical padding (pixels) around the code window
                      ;; Clipboard tool command: defaults to xclip (X11)
                      ;; Wayland users: "wl-copy -t image/png <"
-                     ;; macOS users: "pbcopy <"
+                     ;; macOS users: "impbcopy"
                      #:clipboard-command "xclip -selection clipboard -t image/png -i")
 ```
 
@@ -74,16 +72,16 @@ The `:codesnap-menu` is the main interface for CodeSnap. From here, you can inst
 **Navigation:**
 - Use **Up / Down** arrows (or `j` / `k`) to navigate the menu items.
 - Use **Enter** to expand submenus or execute "Snap" actions.
-- Use **Space** to toggle switches (ON/OFF) or to visually preview a Theme/Background/Padding without closing the menu!
+- Use **Space** to toggle switches (ON/OFF) or to visually preview a Theme/Background/Padding without closing the menu.
 - Use **Right** arrow (or `l`) to expand submenus without executing actions.
-- Use **Left** arrow (or `h`) to gently return to the main menu from a submenu.
+- Use **Left** arrow (or `h` / `q`) to return to the parent menu or close the menu.
 - Use **Escape** to close the window from anywhere.
 
 **Actions:**
 - **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
-- **Snap to File...**: Captures the selection and saves it to `~/Pictures/codesnap-$(date +%s).png`.
+- **Snap to File...**: Captures the selection and saves it to `~/Pictures/codesnap-capture.png`.
 - **Settings >**: Opens the configuration submenu where you can visually tweak:
-  - **Themes** and **Backgrounds** (includes Transparent option!)
+  - **Themes** and **Backgrounds** (includes Transparent option)
   - **Shadow Blur**
   - **Padding** (Horizontal & Vertical)
   - **Toggles** for Window Controls, Titles, and Line Numbers.

@@ -55,8 +55,9 @@
                                            (if (equal? item (get-codesnap-theme))
                                                (string-append "✓ " item)
                                                (string-append "  " item)))
-                            #:filter? #t
+                            #:filter? #f
                             #:close-mode 'pop
+                            #:overlay-scale (lambda () 40)
                             #:keys (lambda (state-box event)
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
@@ -90,8 +91,9 @@
                                            (if (equal? (extract-color item) (get-codesnap-bg))
                                                (string-append "✓ " item)
                                                (string-append "  " item)))
-                            #:filter? #t
+                            #:filter? #f
                             #:close-mode 'pop
+                            #:overlay-scale (lambda () 40)
                             #:keys (lambda (state-box event)
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])
@@ -119,6 +121,7 @@
                                                (string-append "  " item)))
                             #:filter? #f
                             #:close-mode 'pop
+                            #:overlay-scale (lambda () 40)
                             #:keys (lambda (state-box event)
                                      (let* ([state (unbox state-box)]
                                             [choice (picker-current-item state)])

@@ -51,7 +51,7 @@
                    "Visual Studio Dark+" "gruvbox-dark" "gruvbox-light" "zenburn")]
          [spec (make-picker #:name "codesnap-theme-picker"
                             #:title "Syntax Theme"
-                            #:instructions "Space: preview | Enter: apply | Esc: back"
+                            #:instructions "Space: select | Enter: apply | Esc: back"
                             #:items themes
                             #:item-label (lambda (item)
                                            (if (equal? item (get-codesnap-theme))
@@ -89,7 +89,7 @@
                    "#00000000 (Transparent)")]
          [spec (make-picker #:name "codesnap-bg-picker"
                             #:title "Background Color"
-                            #:instructions "Space: preview | Enter: apply | Esc: back"
+                            #:instructions "Space: select | Enter: apply | Esc: back"
                             #:items colors
                             #:item-label (lambda (item)
                                            (if (equal? (extract-color item) (get-codesnap-bg))
@@ -119,7 +119,7 @@
 (define (show-number-picker name title getter setter! options)
   (let* ([spec (make-picker #:name name
                             #:title title
-                            #:instructions "Space: preview | Enter: apply | Esc: back"
+                            #:instructions "Space: select | Enter: apply | Esc: back"
                             #:items options
                             #:item-label (lambda (item)
                                            (if (equal? item (number->string (getter)))
@@ -150,7 +150,7 @@
   (let* ([items '("Theme" "Background" "Shadow Blur" "Horizontal Padding" "Vertical Padding" "Window Controls" "Window Title" "Line Numbers")]
          [spec (make-picker #:name "codesnap-settings-menu"
                             #:title "CodeSnap Settings"
-                            #:instructions "Enter/Right: configure | Esc: back"
+                            #:instructions "Enter/Right: open | Space: toggle | Esc: back"
                             #:items items
                             #:item-label (lambda (item)
                                            (cond

@@ -22,7 +22,7 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
    ```bash
    cargo install silicon
    ```
-3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`impbcopy` or `osascript`), configure the plugin in your `init.scm`.
+3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`impbcopy` or `osascript`), configure the plugin in your `helix.scm`.
 
 ## Installation & Setup
 
@@ -32,19 +32,13 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
 forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
 ```
 
-2. Add these lines to your `~/.config/helix/init.scm` file to register the commands:
+2. Add these lines to your `~/.config/helix/helix.scm` file:
 
 ```scheme
 (require (only-in "codesnap/codesnap.scm" codesnap codesnap-configure!))
 (require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
-(provide codesnap codesnap-menu)
-```
 
-## Configuration
-
-You can customize your default settings across editor sessions by calling `codesnap-configure!` in your `~/.config/helix/init.scm` file:
-
-```scheme
+;; Optional: Customize default settings (values shown are defaults)
 (codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
                      #:background "#aaaaff"            ; Hex color for the background behind the code window
                      #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
@@ -57,6 +51,9 @@ You can customize your default settings across editor sessions by calling `codes
                      ;; Wayland users: "wl-copy -t image/png <"
                      ;; macOS users: "impbcopy"
                      #:clipboard-command "xclip -selection clipboard -t image/png -i")
+
+;; Export only the desired typed commands to the Helix command palette
+(provide codesnap codesnap-menu)
 ```
 
 ## Usage

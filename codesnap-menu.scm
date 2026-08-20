@@ -50,6 +50,8 @@
                    "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" 
                    "Visual Studio Dark+" "gruvbox-dark" "gruvbox-light" "zenburn")]
          [spec (make-picker #:name "codesnap-theme-picker"
+                            #:title "Syntax Theme"
+                            #:instructions "Space: preview | Enter: apply | Esc: back"
                             #:items themes
                             #:item-label (lambda (item)
                                            (if (equal? item (get-codesnap-theme))
@@ -86,6 +88,8 @@
                    "#ffffff (White)" 
                    "#00000000 (Transparent)")]
          [spec (make-picker #:name "codesnap-bg-picker"
+                            #:title "Background Color"
+                            #:instructions "Space: preview | Enter: apply | Esc: back"
                             #:items colors
                             #:item-label (lambda (item)
                                            (if (equal? (extract-color item) (get-codesnap-bg))
@@ -112,8 +116,10 @@
     (show-picker! spec)))
 
 ;; Displays a numeric value picker for dimension and blur configuration.
-(define (show-number-picker name getter setter! options)
+(define (show-number-picker name title getter setter! options)
   (let* ([spec (make-picker #:name name
+                            #:title title
+                            #:instructions "Space: preview | Enter: apply | Esc: back"
                             #:items options
                             #:item-label (lambda (item)
                                            (if (equal? item (number->string (getter)))
@@ -143,6 +149,8 @@
 (define (show-settings-picker)
   (let* ([items '("Theme" "Background" "Shadow Blur" "Horizontal Padding" "Vertical Padding" "Window Controls" "Window Title" "Line Numbers")]
          [spec (make-picker #:name "codesnap-settings-menu"
+                            #:title "CodeSnap Settings"
+                            #:instructions "Enter/Right: configure | Esc: back"
                             #:items items
                             #:item-label (lambda (item)
                                            (cond
@@ -172,13 +180,13 @@
                                                  (begin (show-background-picker) event-result/consume) #f)]
                                             [(equal? choice "Shadow Blur") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-shadow-blur-picker" get-codesnap-shadow-blur codesnap-set-shadow-blur! '("0" "10" "15" "20" "30" "50")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-shadow-blur-picker" "Shadow Blur" get-codesnap-shadow-blur codesnap-set-shadow-blur! '("0" "10" "15" "20" "30" "50")) event-result/consume) #f)]
                                             [(equal? choice "Horizontal Padding") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-pad-horiz-picker" get-codesnap-pad-horiz codesnap-set-pad-horiz! '("0" "20" "40" "80" "100" "120")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-pad-horiz-picker" "Horizontal Padding" get-codesnap-pad-horiz codesnap-set-pad-horiz! '("0" "20" "40" "80" "100" "120")) event-result/consume) #f)]
                                             [(equal? choice "Vertical Padding") 
                                              (if (not (char-is? event #\space))
-                                                 (begin (show-number-picker "codesnap-pad-vert-picker" get-codesnap-pad-vert codesnap-set-pad-vert! '("0" "20" "40" "80" "100" "150")) event-result/consume) #f)]
+                                                 (begin (show-number-picker "codesnap-pad-vert-picker" "Vertical Padding" get-codesnap-pad-vert codesnap-set-pad-vert! '("0" "20" "40" "80" "100" "150")) event-result/consume) #f)]
                                             [(equal? choice "Window Controls") 
                                              (begin
                                                (codesnap-set-window-controls! (not (get-codesnap-window-controls)))
@@ -205,6 +213,8 @@
   
   (let* ([items '("Snap to Clipboard" "Snap to File..." "Settings >")]
          [spec (make-picker #:name "codesnap-main-menu"
+                            #:title "CodeSnap"
+                            #:instructions "Enter: execute | Right: open | Esc: close"
                             #:items items
                             #:filter? #f
                             #:close-mode 'pop

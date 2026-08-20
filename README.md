@@ -67,10 +67,10 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then open 
 The `:codesnap-menu` is the main interface for CodeSnap. From here, you can instantly snap pictures or explore different configurations visually.
 
 **Navigation:**
-- Use **Up / Down** arrows (or `j` / `k`) to navigate the menu items.
-- Use **Enter** to expand submenus or execute "Snap" actions.
-- Use **Space** to toggle switches (ON/OFF) or to visually preview a Theme/Background/Padding without closing the menu.
-- Use **Right** arrow (or `l`) to expand submenus without executing actions.
+- Use **Up / Down** arrows (or `j` / `k`) to navigate items.
+- Use **Enter** to execute snap actions, open submenus, or apply a setting and return.
+- Use **Space** to apply a Theme/Background/Padding setting immediately without closing, or to toggle switches (ON/OFF).
+- Use **Right** arrow (or `l`) to expand submenus.
 - Use **Left** arrow (or `h` / `q`) to return to the parent menu or close the menu.
 - Use **Escape** to close the window from anywhere.
 
@@ -83,7 +83,7 @@ The `:codesnap-menu` is the main interface for CodeSnap. From here, you can inst
   - **Padding** (Horizontal & Vertical)
   - **Toggles** for Window Controls, Titles, and Line Numbers.
 
-*(Note: Settings tweaked in the menu are for live previewing. To persist them, add them to your `init.scm`)*
+*(Note: Settings tweaked in the menu take effect immediately for active captures. To persist them across editor restarts, add them to your `helix.scm`)*
 
 ### Direct Commands
 

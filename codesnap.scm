@@ -41,7 +41,7 @@
 (define *codesnap-line-numbers* #true)
 (define *codesnap-pad-horiz* 80)
 (define *codesnap-pad-vert* 100)
-(define *codesnap-clipboard-command* "xclip -selection clipboard -t image/png -i")
+(define *codesnap-clipboard-command* "auto")
 
 ;; Configures default settings across all codesnap operations.
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
@@ -123,6 +123,12 @@
 (define (bool->flag bool flag)
   (if bool "" flag))
 
+;; Resolves clipboard command pipeline, auto-detecting Wayland/X11/macOS providers.
+(define (resolve-clipboard-command custom-cmd)
+  (if (equal? custom-cmd "auto")
+      "if [ -n \"$WAYLAND_DISPLAY\" ] && command -v wl-copy >/dev/null 2>&1; then wl-copy -t image/png < \"$OUT_FILE\"; elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard -t image/png -i \"$OUT_FILE\"; elif command -v pbcopy >/dev/null 2>&1; then pbcopy < \"$OUT_FILE\"; fi"
+      (string-append custom-cmd " \"$OUT_FILE\"")))
+
 ;; Constructs the shell command pipeline for Silicon image rendering.
 (define (build-silicon-args lang filename in-path out-path)
   (let* ([base-name (path-basename filename)]
@@ -157,9 +163,10 @@
             [save-to-file? (not (null? args))]
             [out-path (if save-to-file? (car args) "/tmp/codesnap_capture.png")]
             [silicon-cmd (build-silicon-args lang filename in-path out-path)]
+            [clip-cmd (resolve-clipboard-command *codesnap-clipboard-command*)]
             [full-cmd (if save-to-file?
                           silicon-cmd
-                          (string-append silicon-cmd " && " *codesnap-clipboard-command* " \"$OUT_FILE\""))])
+                          (string-append silicon-cmd " && " clip-cmd))])
        (helix.run-shell-command full-cmd)
        (if save-to-file?
            (set-status! (string-append "Snap saved to: " out-path))

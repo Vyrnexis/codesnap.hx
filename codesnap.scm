@@ -8,6 +8,7 @@
          codesnap-theme 
          codesnap-bg 
          codesnap-configure!
+         capture-selection-to-file!
          *codesnap-theme* 
          *codesnap-background* 
          *codesnap-shadow-blur*
@@ -81,6 +82,29 @@
            (substring path (+ idx 1) (string-length path))]
           [else (loop (- idx 1))]))))
 
+;; Retrieves active selection text fragments from editor registers.
+(define (get-selection-fragments)
+  (let ([dot (register->value #\.)])
+    (if (and (not (null? dot)) 
+             (not (equal? dot '("")))
+             (not (equal? dot '())))
+        dot
+        (let ([plus (register->value #\+)])
+          (if (and (not (null? plus))
+                   (not (equal? plus '("")))
+                   (not (equal? plus '())))
+              plus
+              (register->value #\"))))))
+
+;; Writes currently selected editor text fragments into a designated file.
+(define (capture-selection-to-file! path)
+  (let* ([fragments (get-selection-fragments)]
+         [out (open-output-file path #:exists 'truncate)])
+    (if (null? fragments)
+        (display "" out)
+        (for-each (lambda (frag) (display frag out)) fragments))
+    (close-output-port out)))
+
 ;; Retrieves and normalizes the language of the currently focused document.
 (define (current-language)
   (let* ([focus (editor-focus)]
@@ -100,13 +124,13 @@
   (if bool "" flag))
 
 ;; Constructs the shell command pipeline for Silicon image rendering.
-(define (build-silicon-args lang filename out-path)
+(define (build-silicon-args lang filename in-path out-path)
   (let* ([base-name (path-basename filename)]
          [title-arg (if (and *codesnap-show-title* base-name)
                         (string-append " --window-title \"" base-name "\"")
                         "")]
          [base-args (string-append
-                     " --from-clipboard "
+                     " " in-path
                      title-arg
                      " --theme \"" *codesnap-theme* "\""
                      " --background \"" *codesnap-background* "\""
@@ -129,9 +153,10 @@
    (lambda ()
      (let* ([lang (current-language)]
             [filename (current-filename)]
+            [in-path "/tmp/codesnap_input.txt"]
             [save-to-file? (not (null? args))]
             [out-path (if save-to-file? (car args) "/tmp/codesnap_capture.png")]
-            [silicon-cmd (build-silicon-args lang filename out-path)]
+            [silicon-cmd (build-silicon-args lang filename in-path out-path)]
             [full-cmd (if save-to-file?
                           silicon-cmd
                           (string-append silicon-cmd " && " *codesnap-clipboard-command* " \"$OUT_FILE\""))])
@@ -142,6 +167,7 @@
 
 ;; Copies current visual selection to system clipboard and executes capture.
 (define (codesnap . args)
+  (capture-selection-to-file! "/tmp/codesnap_input.txt")
   (helix.clipboard-yank)
   (apply codesnap-execute args))
 

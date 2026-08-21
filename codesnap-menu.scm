@@ -14,6 +14,7 @@
                   codesnap-execute 
                   codesnap-theme 
                   codesnap-bg 
+                  capture-selection-to-file!
                   get-codesnap-theme 
                   get-codesnap-bg 
                   get-codesnap-window-controls 
@@ -208,6 +209,7 @@
 
 ;; Core implementation of the root CodeSnap interactive menu.
 (define (codesnap-menu-impl yank?)
+  (capture-selection-to-file! "/tmp/codesnap_input.txt")
   (when yank?
     (helix.clipboard-yank))
   

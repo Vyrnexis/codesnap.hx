@@ -22,7 +22,7 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
    ```bash
    cargo install silicon
    ```
-3. **A clipboard tool**: Defaults to `xclip` (X11). If you use Wayland (`wl-copy`) or macOS (`impbcopy` or `osascript`), configure the plugin in your `helix.scm`.
+3. **A clipboard tool**: Automatically detects `wl-copy` (Wayland), `xclip` (X11), or `pbcopy` (macOS). Can also be manually configured in your `helix.scm`.
 
 ## Installation & Setup
 
@@ -47,10 +47,9 @@ forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
                      #:line-numbers? #t                ; Show line numbers on the left side
                      #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
                      #:pad-vert 100                    ; Vertical padding (pixels) around the code window
-                     ;; Clipboard tool command: defaults to xclip (X11)
-                     ;; Wayland users: "wl-copy -t image/png <"
-                     ;; macOS users: "impbcopy"
-                     #:clipboard-command "xclip -selection clipboard -t image/png -i")
+                     ;; Clipboard tool command: defaults to "auto" (detects wl-copy, xclip, pbcopy)
+                     ;; Override if needed: "wl-copy -t image/png <" or "xclip -selection clipboard -t image/png -i"
+                     #:clipboard-command "auto")
 
 ;; Export only the desired typed commands to the Helix command palette
 (provide codesnap codesnap-menu)

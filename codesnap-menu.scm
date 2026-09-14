@@ -1,5 +1,5 @@
-(require (prefix-in helix. "helix/commands.scm"))
 (require "helix/misc.scm")
+(require (only-in "codesnap-core.scm" current-first))
 (require (only-in "ui-utils.hx/picker.scm" show-picker! picker-current-item))
 (require (only-in "ui-utils.hx/picker-model.scm" make-picker))
 (require (only-in "ui-utils.hx/keys.scm" char-is?))
@@ -8,13 +8,15 @@
                   key-event-right? 
                   key-event-left? 
                   key-event-escape? 
+                  prompt
+                  push-component!
                   pop-last-component-by-name! 
                   event-result/consume))
 (require (only-in "codesnap.scm" 
                   codesnap-execute 
                   codesnap-theme 
                   codesnap-bg 
-                  capture-selection-to-file!
+                  codesnap-themes
                   get-codesnap-theme 
                   get-codesnap-bg 
                   get-codesnap-window-controls 
@@ -32,24 +34,13 @@
 
 (provide codesnap-menu)
 
-;; Determines if target string begins with the given prefix.
-(define (starts-with? str prefix)
-  (and (>= (string-length str) (string-length prefix))
-       (equal? (substring str 0 (string-length prefix)) prefix)))
-
 ;; Extracts hexadecimal color value from menu label string.
 (define (extract-color str)
-  (cond
-    [(starts-with? str "#00000000") "#00000000"]
-    [else (substring str 0 7)]))
+  (car (split-many str " ")))
 
 ;; Displays the interactive syntax theme selection picker.
 (define (show-theme-picker)
-  (let* ([themes '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub" 
-                   "Monokai Extended" "Monokai Extended Bright" "Monokai Extended Light" 
-                   "Monokai Extended Origin" "Nord" "OneHalfDark" "OneHalfLight" 
-                   "Solarized (dark)" "Solarized (light)" "Sublime Snazzy" "TwoDark" 
-                   "Visual Studio Dark+" "gruvbox-dark" "gruvbox-light" "zenburn")]
+  (let* ([themes (current-first (codesnap-themes) (get-codesnap-theme))]
          [spec (make-picker #:name "codesnap-theme-picker"
                             #:title "Syntax Theme"
                             #:instructions "Space: apply | Enter: done | Left/Esc: back"
@@ -80,14 +71,18 @@
 
 ;; Displays the interactive background color selection picker.
 (define (show-background-picker)
-  (let* ([colors '("#aaaaff (Dracula)" 
-                   "#2e3440 (Nord)" 
-                   "#282c34 (One Dark)" 
-                   "#282828 (Gruvbox)"
-                   "#002b36 (Solarized)"
-                   "#000000 (Black)" 
-                   "#ffffff (White)" 
-                   "#00000000 (Transparent)")]
+  (let* ([presets '("#aaaaff (Dracula)"
+                    "#2e3440 (Nord)"
+                    "#282c34 (One Dark)"
+                    "#282828 (Gruvbox)"
+                    "#002b36 (Solarized)"
+                    "#000000 (Black)"
+                    "#ffffff (White)"
+                    "#00000000 (Transparent)")]
+         [current (get-codesnap-bg)]
+         [matching (filter (lambda (item) (equal? (extract-color item) current)) presets)]
+         [current-label (if (null? matching) current (car matching))]
+         [colors (current-first presets current-label)]
          [spec (make-picker #:name "codesnap-bg-picker"
                             #:title "Background Color"
                             #:instructions "Space: apply | Enter: done | Left/Esc: back"
@@ -118,10 +113,11 @@
 
 ;; Displays a numeric value picker for dimension and blur configuration.
 (define (show-number-picker name title getter setter! options)
-  (let* ([spec (make-picker #:name name
+  (let* ([values (current-first options (number->string (getter)))]
+         [spec (make-picker #:name name
                             #:title title
                             #:instructions "Space: apply | Enter: done | Left/Esc: back"
-                            #:items options
+                            #:items values
                             #:item-label (lambda (item)
                                            (if (equal? item (number->string (getter)))
                                                (string-append "✓ " item)
@@ -207,12 +203,18 @@
                                          [else #f]))))])
     (show-picker! spec)))
 
+;; Prompts for a destination and starts a file capture after submission.
+(define (prompt-save-path)
+  (push-component!
+   (prompt "Save CodeSnap (default: ~/Pictures/codesnap-capture.png): "
+           (lambda (input)
+             (codesnap-execute
+              (if (or (not input) (string=? (trim input) ""))
+                  "~/Pictures/codesnap-capture.png"
+                  input))))))
+
 ;; Core implementation of the root CodeSnap interactive menu.
-(define (codesnap-menu-impl yank?)
-  (capture-selection-to-file! "/tmp/codesnap_input.txt")
-  (when yank?
-    (helix.clipboard-yank))
-  
+(define (codesnap-menu-impl)
   (let* ([items '("Snap to Clipboard" "Snap to File..." "Settings >")]
          [spec (make-picker #:name "codesnap-main-menu"
                             #:title "CodeSnap"
@@ -237,8 +239,8 @@
                                             [(equal? choice "Snap to File...") 
                                              (if (key-event-enter? event)
                                                  (begin
-                                                   (codesnap-execute "~/Pictures/codesnap-capture.png")
                                                    (pop-last-component-by-name! "codesnap-main-menu")
+                                                   (prompt-save-path)
                                                    event-result/consume)
                                                  #f)]
                                             [(equal? choice "Settings >") 
@@ -253,4 +255,4 @@
 
 ;; Opens the root interactive CodeSnap control panel.
 (define (codesnap-menu)
-  (codesnap-menu-impl #t))
+  (codesnap-menu-impl))

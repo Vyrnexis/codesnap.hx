@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Steel 0.8.2
+        run: >-
+          cargo install
+          --git https://github.com/mattwparas/steel.git
+          --rev 2640abca12408c11b0d692b41284815c65856cf8
+          --locked
+          steel-interpreter
+
+      - name: Run core checks
+        run: steel tests/codesnap-core-test.scm

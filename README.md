@@ -1,19 +1,21 @@
 # codesnap.hx
 
+[![Tests](https://github.com/Vyrnexis/codesnap.hx/actions/workflows/test.yml/badge.svg)](https://github.com/Vyrnexis/codesnap.hx/actions/workflows/test.yml)
+
 ![Screenshot of CodeSnap in action](screenshots/screenshot.png)
 
-A simple plugin for [Helix](https://github.com/helix-editor/helix) (using the [Steel plugin branch](https://github.com/mattwparas/helix)) that takes screenshots of your code and copies them to your clipboard.
+A plugin for [Helix](https://github.com/helix-editor/helix) using the [Steel plugin branch](https://github.com/mattwparas/helix/tree/steel-event-system) that renders selected code as an image.
 
 Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your current visual selection to [silicon](https://github.com/Aloxaf/silicon) to generate the image.
 
-## The Control Panel
+## Features
 
-The plugin features a fully interactive TUI control panel for taking snaps and live-previewing settings:
-
-<p align="center">
-  <img src="screenshots/menu.png" alt="CodeSnap Main Menu" width="48%" />
-  <img src="screenshots/settings.png" alt="CodeSnap Settings Menu" width="48%" />
-</p>
+- Copy rendered code directly to the system clipboard.
+- Save to a path chosen through the menu or command palette.
+- Configure themes, backgrounds, padding, shadows, titles, and line numbers.
+- Discover themes from the installed Silicon version.
+- Preserve multiple selections as separate lines.
+- Render asynchronously without changing the selection or clipboard on cancel.
 
 ## Requirements
 
@@ -22,7 +24,8 @@ The plugin features a fully interactive TUI control panel for taking snaps and l
    ```bash
    cargo install silicon
    ```
-3. **A clipboard tool**: Automatically detects `wl-copy` (Wayland), `xclip` (X11), or `pbcopy` (macOS). Can also be manually configured in your `helix.scm`.
+
+Silicon owns clipboard integration. On Linux, install the clipboard tool required by Silicon for your Wayland or X11 session.
 
 ## Installation & Setup
 
@@ -46,10 +49,7 @@ forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
                      #:show-title? #t                  ; Show the filename in the window title bar
                      #:line-numbers? #t                ; Show line numbers on the left side
                      #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
-                     #:pad-vert 100                    ; Vertical padding (pixels) around the code window
-                     ;; Clipboard tool command: defaults to "auto" (detects wl-copy, xclip, pbcopy)
-                     ;; Override if needed: "wl-copy -t image/png <" or "xclip -selection clipboard -t image/png -i"
-                     #:clipboard-command "auto")
+                     #:pad-vert 100)                   ; Vertical padding (pixels) around the code window
 
 ;; Export only the desired typed commands to the Helix command palette
 (provide codesnap codesnap-menu)
@@ -63,7 +63,7 @@ Make a visual selection (`v` or `x`) of the code you want to capture, then open 
 
 ### The CodeSnap Menu
 
-The `:codesnap-menu` is the main interface for CodeSnap. From here, you can instantly snap pictures or explore different configurations visually.
+The `:codesnap-menu` is the main interface for captures and interactive settings.
 
 **Navigation:**
 - Use **Up / Down** arrows (or `j` / `k`) to navigate items.
@@ -71,18 +71,18 @@ The `:codesnap-menu` is the main interface for CodeSnap. From here, you can inst
 - Use **Space** to apply a Theme/Background/Padding setting immediately without closing, or to toggle switches (ON/OFF).
 - Use **Right** arrow (or `l`) to expand submenus.
 - Use **Left** arrow (or `h` / `q`) to return to the parent menu or close the menu.
-- Use **Escape** to close the window from anywhere.
+- Use **Escape** to return one level, or close the main menu.
 
 **Actions:**
 - **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
-- **Snap to File...**: Captures the selection and saves it to `~/Pictures/codesnap-capture.png`.
-- **Settings >**: Opens the configuration submenu where you can visually tweak:
+- **Snap to File...**: Prompts for a destination path before rendering.
+- **Settings >**: Opens the configuration submenu where you can change:
   - **Themes** and **Backgrounds** (includes Transparent option)
   - **Shadow Blur**
   - **Padding** (Horizontal & Vertical)
   - **Toggles** for Window Controls, Titles, and Line Numbers.
 
-*(Note: Settings tweaked in the menu take effect immediately for active captures. To persist them across editor restarts, add them to your `helix.scm`)*
+Settings take effect immediately for the current editor session. Add them to `helix.scm` to persist them across restarts.
 
 ### Direct Commands
 
@@ -91,6 +91,22 @@ If you prefer to bypass the menu, you can use these commands directly:
 - `:codesnap` — Captures the selection and copies it to your clipboard immediately using your current settings.
 - `:codesnap <path>` — Saves the screenshot directly to a specific file (e.g. `:codesnap ~/Desktop/code.png`).
 
+Quote paths containing spaces, for example `:codesnap "~/Desktop/code sample.png"`.
+
+## Feedback and Errors
+
+CodeSnap displays `rendering...` while Silicon runs and reports success only after the render completes. Missing Silicon, invalid settings, unsupported output paths, and clipboard failures are shown in the Helix status line.
+
+Unsupported Helix language identifiers are retried using the current filename extension and then Markdown syntax.
+
+## Development
+
+Run the dependency-free core checks with:
+
+```bash
+steel tests/codesnap-core-test.scm
+```
+
 ## Updating
 
 To pull the latest updates for the plugin, run the install command again with the `--force` flag:
@@ -98,3 +114,7 @@ To pull the latest updates for the plugin, run the install command again with th
 ```bash
 forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
 ```
+
+## License
+
+[MIT](LICENSE)

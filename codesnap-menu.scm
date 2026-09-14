@@ -43,7 +43,7 @@
   (let* ([themes (current-first (codesnap-themes) (get-codesnap-theme))]
          [spec (make-picker #:name "codesnap-theme-picker"
                             #:title "Syntax Theme"
-                            #:instructions "Space: apply | Enter: done | Left/Esc: back"
+                            #:instructions "Space: apply | Enter: done | Esc: back"
                             #:items themes
                             #:item-label (lambda (item)
                                            (if (equal? item (get-codesnap-theme))
@@ -85,7 +85,7 @@
          [colors (current-first presets current-label)]
          [spec (make-picker #:name "codesnap-bg-picker"
                             #:title "Background Color"
-                            #:instructions "Space: apply | Enter: done | Left/Esc: back"
+                            #:instructions "Space: apply | Enter: done | Esc: back"
                             #:items colors
                             #:item-label (lambda (item)
                                            (if (equal? (extract-color item) (get-codesnap-bg))
@@ -116,7 +116,7 @@
   (let* ([values (current-first options (number->string (getter)))]
          [spec (make-picker #:name name
                             #:title title
-                            #:instructions "Space: apply | Enter: done | Left/Esc: back"
+                            #:instructions "Space: apply | Enter: done | Esc: back"
                             #:items values
                             #:item-label (lambda (item)
                                            (if (equal? item (number->string (getter)))
@@ -147,7 +147,7 @@
   (let* ([items '("Theme" "Background" "Shadow Blur" "Horizontal Padding" "Vertical Padding" "Window Controls" "Window Title" "Line Numbers")]
          [spec (make-picker #:name "codesnap-settings-menu"
                             #:title "CodeSnap Settings"
-                            #:instructions "Enter/Right: open | Space: toggle | Left/Esc: back"
+                            #:instructions "Enter: open | Space: toggle | Esc: back"
                             #:items items
                             #:item-label (lambda (item)
                                            (cond
@@ -218,7 +218,7 @@
   (let* ([items '("Snap to Clipboard" "Snap to File..." "Settings >")]
          [spec (make-picker #:name "codesnap-main-menu"
                             #:title "CodeSnap"
-                            #:instructions "Enter: execute | Right: open | Left/Esc: close"
+                            #:instructions "Enter: select | Esc: close"
                             #:items items
                             #:filter? #f
                             #:close-mode 'pop
@@ -248,6 +248,7 @@
                                              event-result/consume]
                                             [else #f])]
                                          [(or (key-event-escape? event) (key-event-left? event) (char-is? event #\h) (char-is? event #\q))
+                                          (set-status! "")
                                           (pop-last-component-by-name! "codesnap-main-menu")
                                           event-result/consume]
                                          [else #f]))))])

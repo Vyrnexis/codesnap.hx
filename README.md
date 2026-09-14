@@ -17,6 +17,13 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
 - Preserve multiple selections as separate lines.
 - Render asynchronously without changing the selection or clipboard on cancel.
 
+## Interface
+
+<p align="center">
+  <img src="screenshots/menu.png" alt="CodeSnap main menu" width="48%" />
+  <img src="screenshots/settings.png" alt="CodeSnap settings menu" width="48%" />
+</p>
+
 ## Requirements
 
 1. **Helix with Steel**: You need a build of Helix that includes the Scheme/Steel plugin system.

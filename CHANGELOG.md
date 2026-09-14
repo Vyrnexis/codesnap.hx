@@ -3,7 +3,7 @@
 ## 0.4.0
 
 - Run Silicon directly with structured arguments instead of shell commands.
-- Stream selections through stdin without temporary files or clipboard yanks.
+- Stream selections through stdin without temporary source or image files.
 - Use Silicon's native cross-platform image clipboard support.
 - Report verified render success and actionable failures asynchronously.
 - Prompt for file destinations instead of silently overwriting a fixed path.
@@ -13,3 +13,5 @@
 - Retry unsupported Helix language names using the file extension and Markdown.
 - Run dependency-free core checks in GitHub Actions.
 - Deprecate and ignore `#:clipboard-command`; Silicon now owns clipboard integration.
+- Keep menu hints inside their overlays and suppress internal thread handles.
+- Complete clipboard status promptly and clear successful messages automatically.

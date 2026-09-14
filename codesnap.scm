@@ -39,6 +39,35 @@
 (define *codesnap-line-numbers* #true)
 (define *codesnap-pad-horiz* 80)
 (define *codesnap-pad-vert* 100)
+(define *codesnap-status-token* 0)
+
+;; Advances and returns the token guarding delayed status updates.
+(define (next-status-token!)
+  (set! *codesnap-status-token* (+ *codesnap-status-token* 1))
+  *codesnap-status-token*)
+
+;; Shows a status that remains until the capture finishes.
+(define (set-active-status! message)
+  (next-status-token!)
+  (set-status! message)
+  void)
+
+;; Shows a successful status for three seconds without clearing newer messages.
+(define (set-temporary-status! message)
+  (let ([token (next-status-token!)])
+    (set-status! message)
+    (enqueue-thread-local-callback-with-delay
+     3000
+     (lambda ()
+       (when (= token *codesnap-status-token*)
+         (set-status! ""))))
+    void))
+
+;; Shows a persistent error while preventing older timers from clearing it.
+(define (set-active-error! message)
+  (next-status-token!)
+  (set-error! message)
+  void)
 
 ;; Validates all settings before updating the active configuration.
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
@@ -117,6 +146,28 @@
                    'stderr (unbox stderr-box)
                    'exit (if (Ok? wait-result) (Ok->value wait-result) #f))))))))
 
+;; Runs Silicon clipboard mode without capturing the pipe retained by its clipboard owner.
+(define (run-clipboard-program args stdin-input)
+  (with-handler
+   (lambda (err) (hash 'stdout "" 'stderr (to-string err) 'exit #f))
+   (let* ([stderr-port (open-output-file
+                        (if (path-exists? "/dev/null") "/dev/null" "NUL")
+                        #:exists 'truncate)]
+          [cmd (command "silicon" args)]
+          [_ (with-stdin-piped cmd)]
+          [_ (with-stderr cmd stderr-port)]
+          [spawned (spawn-process cmd)])
+     (if (Err? spawned)
+         (hash 'stdout "" 'stderr (to-string (Err->value spawned)) 'exit #f)
+         (let* ([child (Ok->value spawned)]
+                [stdin (child-stdin child)]
+                [_ (when stdin
+                     (display stdin-input stdin)
+                     (close-output-port stdin))]
+                [wait-result (wait child)])
+           (hash 'stdout "" 'stderr ""
+                 'exit (if (Ok? wait-result) (Ok->value wait-result) #f)))))))
+
 ;; Determines whether Silicon completed without process or application errors.
 (define (render-success? result)
   (and (equal? (hash-ref result 'exit) 0)
@@ -136,7 +187,10 @@
   (let loop ([remaining attempts] [last-result #f])
     (if (null? remaining)
         last-result
-        (let ([result (run-program "silicon" (car remaining) selection)])
+        (let* ([args (car remaining)]
+               [result (if (member "--to-clipboard" args)
+                           (run-clipboard-program args selection)
+                           (run-program "silicon" args selection))])
           (if (and (not (render-success? result))
                    (unsupported-language-error? (hash-ref result 'stderr))
                    (not (null? (cdr remaining))))
@@ -166,7 +220,7 @@
   (let* ([languages (capture-languages (current-language) filename)]
          [attempts (capture-attempts languages filename out-path)]
          [theme *codesnap-theme*])
-    (set-status! "CodeSnap: rendering...")
+    (set-active-status! "CodeSnap: rendering...")
     (spawn-native-thread
      (lambda ()
        (let ([result (render-with-fallback selection attempts)])
@@ -174,26 +228,28 @@
           (lambda ()
             (if (render-success? result)
                 (if out-path
-                    (set-status! (string-append "CodeSnap saved: " out-path))
-                    (set-status! (string-append "CodeSnap copied. Theme: " theme)))
-                (set-error! (string-append "CodeSnap: " (render-error-message result)))))))))))
+                    (set-temporary-status! (string-append "CodeSnap saved: " out-path))
+                    (set-temporary-status! (string-append "CodeSnap copied. Theme: " theme)))
+                (set-active-error!
+                 (string-append "CodeSnap: " (render-error-message result)))))))))
+    void))
 
 ;; Executes a clipboard capture or saves to the single supplied path.
 (define (codesnap-execute . args)
   (cond
     [(> (length args) 1)
-     (set-error! "CodeSnap accepts one output path; quote paths containing spaces")]
+     (set-active-error! "CodeSnap accepts one output path; quote paths containing spaces")]
     [(not (which "silicon"))
-     (set-error! "CodeSnap: Silicon is not installed or not on PATH")]
+     (set-active-error! "CodeSnap: Silicon is not installed or not on PATH")]
     [else
      (let* ([selection (selection-text (register->value #\.))]
             [filename (current-filename)]
             [out-path (if (null? args) #f (car args))])
        (cond
          [(string=? selection "")
-          (set-error! "CodeSnap: select some code first")]
+          (set-active-error! "CodeSnap: select some code first")]
          [(and out-path (or (not (string? out-path)) (string=? (trim out-path) "")))
-          (set-error! "CodeSnap: output path cannot be empty")]
+          (set-active-error! "CodeSnap: output path cannot be empty")]
          [else (start-capture selection filename out-path)]))]))
 
 ;; Captures the current selection using the active settings.
@@ -214,12 +270,12 @@
 ;; Sets the active syntax highlighting theme.
 (define (codesnap-theme theme)
   (codesnap-configure! #:theme theme)
-  (set-status! (string-append "CodeSnap theme: " theme)))
+  (set-temporary-status! (string-append "CodeSnap theme: " theme)))
 
 ;; Sets the active background color.
 (define (codesnap-bg background)
   (codesnap-configure! #:background background)
-  (set-status! (string-append "CodeSnap background: " background)))
+  (set-temporary-status! (string-append "CodeSnap background: " background)))
 
 ;; Retrieves the active theme name.
 (define (get-codesnap-theme) *codesnap-theme*)

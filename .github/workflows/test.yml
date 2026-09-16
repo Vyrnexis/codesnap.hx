@@ -24,3 +24,11 @@ jobs:
 
       - name: Run core checks
         run: steel tests/codesnap-core-test.scm
+
+      - name: Run process checks
+        run: |
+          mkdir -p .test-work/tmp
+          PATH="$PWD/tests/fixtures:$PATH" \
+          TMPDIR="$PWD/.test-work/tmp" \
+          SILICON_CONFIG_PATH="$PWD/tests/fixtures/silicon-config" \
+          steel tests/codesnap-process-test.scm

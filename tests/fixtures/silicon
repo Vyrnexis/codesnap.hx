@@ -1,0 +1,39 @@
+#!/bin/sh
+# Simulates Silicon's zero-exit errors, config handling and inherited diagnostic handles.
+if [ -s "$SILICON_CONFIG_PATH" ]; then
+    printf '%s\n' 'duplicate configuration arguments' >&2
+    exit 1
+fi
+
+language=rust
+theme=Dracula
+output=
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -l) language=$2; shift 2 ;;
+        --theme) theme=$2; shift 2 ;;
+        -o) output=$2; shift 2 ;;
+        --list-themes) printf '%s\n' Dracula Nord; exit 0 ;;
+        *) shift ;;
+    esac
+done
+
+if [ "$theme" = Broken ]; then
+    printf '%s\n' '[error] Cannot load theme: Broken' >&2
+    exit 0
+fi
+if [ "$language" = unsupported ]; then
+    printf '%s\n' '[error] Unsupported language: unsupported' >&2
+    exit 0
+fi
+if [ "$language" = crashed ]; then
+    exit 7
+fi
+
+cat >/dev/null
+if [ "$language" = inherited ]; then
+    sleep 2 &
+fi
+if [ -n "$output" ]; then
+    printf '%s\n' rendered >"$output"
+fi

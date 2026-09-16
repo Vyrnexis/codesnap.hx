@@ -1,75 +1,48 @@
 (require "helix/editor.scm")
 (require "helix/misc.scm")
 (require "helix/ext.scm")
+(require (only-in "helix/components.scm" prompt push-component!))
+(require (only-in "helix/configuration.scm" get-config-option-value get-language-config))
+(require (only-in "helix/commands.scm" new))
+(require (only-in "helix/static.scm" current-selection-object selection->ranges
+                  range->from insert_string))
+(require-builtin helix/core/text as text.)
 (require-builtin steel/process)
-(require (only-in "codesnap-core.scm"
-                  default-themes
-                  config-validation-error
-                  selection-text
-                  path-extension
-                  build-silicon-args
-                  unsupported-language-error?))
+(require-builtin steel/time)
+(require "codesnap-core.scm")
+(require "codesnap-process.scm")
 
-(provide codesnap
-         codesnap-execute
-         codesnap-theme
-         codesnap-bg
-         codesnap-configure!
-         codesnap-themes
-         get-codesnap-theme
-         get-codesnap-bg
-         get-codesnap-shadow-blur
-         get-codesnap-window-controls
-         get-codesnap-show-title
-         get-codesnap-line-numbers
-         get-codesnap-pad-horiz
-         get-codesnap-pad-vert
-         codesnap-set-shadow-blur!
-         codesnap-set-window-controls!
-         codesnap-set-show-title!
-         codesnap-set-line-numbers!
-         codesnap-set-pad-horiz!
-         codesnap-set-pad-vert!)
+(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure!
+         codesnap-themes codesnap-fonts codesnap-reset codesnap-export codesnap-open-last
+         codesnap-default-path get-codesnap-busy get-codesnap-last-path
+         get-codesnap-theme get-codesnap-bg get-codesnap-shadow-blur
+         get-codesnap-window-controls get-codesnap-show-title get-codesnap-line-numbers
+         get-codesnap-pad-horiz get-codesnap-pad-vert get-codesnap-font
+         get-codesnap-font-size get-codesnap-tab-width get-codesnap-original-lines
+         get-codesnap-dedent
+         codesnap-set-shadow-blur! codesnap-set-window-controls! codesnap-set-show-title!
+         codesnap-set-line-numbers! codesnap-set-pad-horiz! codesnap-set-pad-vert!
+         codesnap-set-font! codesnap-set-font-size! codesnap-set-tab-width!
+         codesnap-set-original-lines! codesnap-set-dedent!)
 
 (define *codesnap-theme* "Dracula")
 (define *codesnap-background* "#aaaaff")
 (define *codesnap-shadow-blur* 15)
-(define *codesnap-window-controls* #true)
-(define *codesnap-show-title* #true)
-(define *codesnap-line-numbers* #true)
+(define *codesnap-window-controls* #t)
+(define *codesnap-show-title* #t)
+(define *codesnap-line-numbers* #t)
 (define *codesnap-pad-horiz* 80)
 (define *codesnap-pad-vert* 100)
-(define *codesnap-status-token* 0)
+(define *codesnap-font* "Hack")
+(define *codesnap-font-size* 26)
+(define *codesnap-tab-width* #f)
+(define *codesnap-original-lines* #f)
+(define *codesnap-dedent* #f)
+(define *codesnap-busy* #f)
+(define *codesnap-last-path* #f)
+(define *codesnap-save-directory* #f)
 
-;; Advances and returns the token guarding delayed status updates.
-(define (next-status-token!)
-  (set! *codesnap-status-token* (+ *codesnap-status-token* 1))
-  *codesnap-status-token*)
-
-;; Shows a status that remains until the capture finishes.
-(define (set-active-status! message)
-  (next-status-token!)
-  (set-status! message)
-  void)
-
-;; Shows a successful status for three seconds without clearing newer messages.
-(define (set-temporary-status! message)
-  (let ([token (next-status-token!)])
-    (set-status! message)
-    (enqueue-thread-local-callback-with-delay
-     3000
-     (lambda ()
-       (when (= token *codesnap-status-token*)
-         (set-status! ""))))
-    void))
-
-;; Shows a persistent error while preventing older timers from clearing it.
-(define (set-active-error! message)
-  (next-status-token!)
-  (set-error! message)
-  void)
-
-;; Validates all settings before updating the active configuration.
+;; Validates the entire configuration before changing any active settings.
 (define (codesnap-configure! #:theme [theme *codesnap-theme*]
                              #:background [background *codesnap-background*]
                              #:shadow-blur [shadow-blur *codesnap-shadow-blur*]
@@ -78,12 +51,23 @@
                              #:line-numbers? [line-numbers? *codesnap-line-numbers*]
                              #:pad-horiz [pad-horiz *codesnap-pad-horiz*]
                              #:pad-vert [pad-vert *codesnap-pad-vert*]
+                             #:font [font *codesnap-font*]
+                             #:font-size [font-size *codesnap-font-size*]
+                             #:tab-width [tab-width *codesnap-tab-width*]
+                             #:original-line-numbers? [original-lines? *codesnap-original-lines*]
+                             #:dedent? [dedent? *codesnap-dedent*]
                              #:clipboard-command [_clipboard-command #f])
   (let ([error-message
-         (config-validation-error theme background shadow-blur
-                                  window-controls? show-title? line-numbers?
-                                  pad-horiz pad-vert)])
-    (when error-message (raise-error error-message))
+         (or (config-validation-error theme background shadow-blur
+                                      window-controls? show-title? line-numbers?
+                                      pad-horiz pad-vert)
+             (font-validation-error font font-size)
+             (and tab-width
+                  (not (and (integer? tab-width) (<= 1 tab-width) (<= tab-width 255)))
+                  "CodeSnap tab width must be #f (editor) or an integer from 1 to 255")
+             (and (not (boolean? original-lines?)) "CodeSnap original-line-numbers? must be boolean")
+             (and (not (boolean? dedent?)) "CodeSnap dedent? must be boolean"))])
+    (when error-message (error error-message))
     (set! *codesnap-theme* theme)
     (set! *codesnap-background* background)
     (set! *codesnap-shadow-blur* shadow-blur)
@@ -91,236 +75,295 @@
     (set! *codesnap-show-title* show-title?)
     (set! *codesnap-line-numbers* line-numbers?)
     (set! *codesnap-pad-horiz* pad-horiz)
-    (set! *codesnap-pad-vert* pad-vert)))
+    (set! *codesnap-pad-vert* pad-vert)
+    (set! *codesnap-font* font)
+    (set! *codesnap-font-size* font-size)
+    (set! *codesnap-tab-width* tab-width)
+    (set! *codesnap-original-lines* original-lines?)
+    (set! *codesnap-dedent* dedent?)
+    void))
 
-;; Normalizes editor language identifiers to Silicon-supported syntax names.
+;; Maps editor syntax names to the available Silicon language tokens.
 (define (normalize-language lang)
   (cond
     [(not lang) "markdown"]
-    [(or (equal? lang "scheme") (equal? lang "scm") (equal? lang "steel")) "lisp"]
-    [(or (equal? lang "txt") (equal? lang "text") (equal? lang "plaintext")) "markdown"]
+    [(member lang '("scheme" "scm" "steel")) "lisp"]
+    [(member lang '("txt" "text" "plaintext")) "markdown"]
     [else lang]))
 
-;; Retrieves and normalizes the focused document language.
-(define (current-language)
-  (let* ([focus (editor-focus)]
-         [doc-id (editor->doc-id focus)])
-    (normalize-language (editor-document->language doc-id))))
+;; Reads the focused document ID for metadata and selection snapshots.
+(define (current-document)
+  (editor->doc-id (editor-focus)))
 
-;; Retrieves the focused document path when it has one.
-(define (current-filename)
-  (let* ([focus (editor-focus)]
-         [doc-id (editor->doc-id focus)])
-    (editor-document->path doc-id)))
+;; Resolves tab width from an explicit override, editor settings, or language configuration.
+(define (capture-tab-width language)
+  (or *codesnap-tab-width*
+      (with-handler
+       (lambda (_) #f)
+       (let ([width (get-config-option-value "tab-width")])
+         (and (integer? width) (> width 0) width)))
+      (with-handler
+       (lambda (_) #f)
+       (let ([width (hash-ref (hash-ref (get-language-config language) 'indent) 'tab-width)])
+         (and (integer? width) (> width 0) width)))
+      4))
 
-;; Captures stdout, stderr, and exit status from a directly spawned process.
-(define (run-program program args stdin-input)
-  (with-handler
-   (lambda (err) (hash 'stdout "" 'stderr (to-string err) 'exit #f))
-   (let ([cmd (command program args)])
-     (set-piped-stdout! cmd)
-     (let ([spawned (spawn-process cmd)])
-       (if (Err? spawned)
-           (hash 'stdout "" 'stderr (to-string (Err->value spawned)) 'exit #f)
-           (let* ([child (Ok->value spawned)]
-                  [stdin (child-stdin child)]
-                  [_ (when stdin
-                       (when (string? stdin-input) (display stdin-input stdin))
-                       (close-output-port stdin))]
-                  [stdout-box (box "")]
-                  [stderr-box (box "")]
-                  [stdout-thread
-                   (spawn-native-thread
-                    (lambda ()
-                      (let ([port (child-stdout child)])
-                        (when port (set-box! stdout-box (read-port-to-string port))))))]
-                  [stderr-thread
-                   (spawn-native-thread
-                    (lambda ()
-                      (let ([port (child-stderr child)])
-                        (when port (set-box! stderr-box (read-port-to-string port))))))]
-                  [_ (thread-join! stdout-thread)]
-                  [_ (thread-join! stderr-thread)]
-                  [wait-result (wait child)])
-             (hash 'stdout (unbox stdout-box)
-                   'stderr (unbox stderr-box)
-                   'exit (if (Ok? wait-result) (Ok->value wait-result) #f))))))))
+;; Snapshots source, metadata and arguments without touching the editor selection.
+(define (capture-snapshot out-path)
+  (let* ([doc (current-document)]
+         [filename (editor-document->path doc)]
+         [language (editor-document->language doc)]
+         [fragments (register->value #\.)]
+         [selection (selection-text fragments)]
+         [ranges (selection->ranges (current-selection-object))]
+         [offset (if (and *codesnap-original-lines* (= (length ranges) 1))
+                     (+ 1 (text.rope-char->line (editor->text doc) (range->from (car ranges))))
+                     1)]
+         [args (map (lambda (lang)
+                      (build-silicon-args
+                       lang filename *codesnap-theme* *codesnap-background*
+                       *codesnap-shadow-blur* *codesnap-window-controls*
+                       *codesnap-show-title* *codesnap-line-numbers*
+                       *codesnap-pad-horiz* *codesnap-pad-vert* out-path
+                       #:font *codesnap-font* #:font-size *codesnap-font-size*
+                       #:tab-width (capture-tab-width language) #:line-offset offset))
+                    (capture-languages (normalize-language language) filename))])
+    (when (string=? selection "") (error "Select some code first"))
+    (hash 'selection (if *codesnap-dedent* (dedent-text selection) selection)
+          'args args 'theme *codesnap-theme*)))
 
-;; Runs Silicon clipboard mode without capturing the pipe retained by its clipboard owner.
-(define (run-clipboard-program args stdin-input)
-  (with-handler
-   (lambda (err) (hash 'stdout "" 'stderr (to-string err) 'exit #f))
-   (let* ([stderr-port (open-output-file
-                        (if (path-exists? "/dev/null") "/dev/null" "NUL")
-                        #:exists 'truncate)]
-          [cmd (command "silicon" args)]
-          [_ (with-stdin-piped cmd)]
-          [_ (with-stderr cmd stderr-port)]
-          [spawned (spawn-process cmd)])
-     (if (Err? spawned)
-         (hash 'stdout "" 'stderr (to-string (Err->value spawned)) 'exit #f)
-         (let* ([child (Ok->value spawned)]
-                [stdin (child-stdin child)]
-                [_ (when stdin
-                     (display stdin-input stdin)
-                     (close-output-port stdin))]
-                [wait-result (wait child)])
-           (hash 'stdout "" 'stderr ""
-                 'exit (if (Ok? wait-result) (Ok->value wait-result) #f)))))))
-
-;; Determines whether Silicon completed without process or application errors.
-(define (render-success? result)
-  (and (equal? (hash-ref result 'exit) 0)
-       (string=? (trim (hash-ref result 'stderr)) "")))
-
-;; Returns a concise user-facing message for a failed Silicon invocation.
-(define (render-error-message result)
-  (let ([stderr (trim (hash-ref result 'stderr))])
-    (cond
-      [(not (hash-ref result 'exit)) "Unable to start Silicon"]
-      [(not (string=? stderr "")) (car (split-many stderr "\n"))]
-      [else (string-append "Silicon exited with status "
-                           (number->string (hash-ref result 'exit)))])))
-
-;; Runs Silicon argv attempts until one succeeds or returns a non-syntax error.
-(define (render-with-fallback selection attempts)
-  (let loop ([remaining attempts] [last-result #f])
-    (if (null? remaining)
-        last-result
-        (let* ([args (car remaining)]
-               [result (if (member "--to-clipboard" args)
-                           (run-clipboard-program args selection)
-                           (run-program "silicon" args selection))])
-          (if (and (not (render-success? result))
-                   (unsupported-language-error? (hash-ref result 'stderr))
-                   (not (null? (cdr remaining))))
-              (loop (cdr remaining) result)
-              result)))))
-
-;; Creates the ordered language fallback list for the focused document.
-(define (capture-languages lang filename)
-  (let ([extension (path-extension filename)])
-    (foldr (lambda (item acc)
-             (if (or (not item) (member item acc)) acc (cons item acc)))
-           '()
-           (list lang extension "markdown"))))
-
-;; Snapshots the current settings into one argv list per language attempt.
-(define (capture-attempts languages filename out-path)
-  (map (lambda (lang)
-         (build-silicon-args
-          lang filename *codesnap-theme* *codesnap-background*
-          *codesnap-shadow-blur* *codesnap-window-controls*
-          *codesnap-show-title* *codesnap-line-numbers*
-          *codesnap-pad-horiz* *codesnap-pad-vert* out-path))
-       languages))
-
-;; Runs a capture asynchronously and reports its verified result.
-(define (start-capture selection filename out-path)
-  (let* ([languages (capture-languages (current-language) filename)]
-         [attempts (capture-attempts languages filename out-path)]
-         [theme *codesnap-theme*])
-    (set-active-status! "CodeSnap: rendering...")
-    (spawn-native-thread
-     (lambda ()
-       (let ([result (render-with-fallback selection attempts)])
-         (hx.with-context
+;; Starts one worker, keeping its settings stable through confirmation and completion.
+(define (start-capture snapshot out-path replace?)
+  (if *codesnap-busy*
+      (set-status! "CodeSnap: a capture is already running")
+      (begin
+        (set! *codesnap-busy* #t)
+        (set-status! "CodeSnap: rendering...")
+        (with-handler
+         (lambda (err)
+           (set! *codesnap-busy* #f)
+           (set-error! (string-append "CodeSnap: " (error-object-message err))))
+         (spawn-native-thread
           (lambda ()
-            (if (render-success? result)
-                (if out-path
-                    (set-temporary-status! (string-append "CodeSnap saved: " out-path))
-                    (set-temporary-status! (string-append "CodeSnap copied. Theme: " theme)))
-                (set-active-error!
-                 (string-append "CodeSnap: " (render-error-message result)))))))))
-    void))
+            (let ([result
+                   (with-handler
+                    (lambda (err) (hash 'stdout "" 'stderr (to-string err) 'exit #f))
+                    (if out-path
+                        (render-file
+                         (hash-ref snapshot 'selection)
+                         (lambda (staging)
+                           (map (lambda (args)
+                                  (append (take args (- (length args) 1)) (list staging)))
+                                (hash-ref snapshot 'args)))
+                         out-path replace?)
+                        (render-with-fallback (hash-ref snapshot 'selection)
+                                              (hash-ref snapshot 'args))))])
+              (hx.with-context
+               (lambda ()
+                 (set! *codesnap-busy* #f)
+                 (if (render-success? result)
+                     (if out-path
+                         (begin
+                           (set! *codesnap-last-path* out-path)
+                           (set! *codesnap-save-directory* (parent-name out-path))
+                           (set-status! (string-append "CodeSnap saved: " out-path)))
+                         (set-status! (string-append "CodeSnap copied. Theme: "
+                                                    (hash-ref snapshot 'theme))))
+                     (set-error! (string-append "CodeSnap: " (render-error-message result))))
+                 void))))))))
+  void)
 
-;; Executes a clipboard capture or saves to the single supplied path.
+;; Validates paths and asks before replacing an existing file, for both entry points.
 (define (codesnap-execute . args)
-  (cond
-    [(> (length args) 1)
-     (set-active-error! "CodeSnap accepts one output path; quote paths containing spaces")]
-    [(not (which "silicon"))
-     (set-active-error! "CodeSnap: Silicon is not installed or not on PATH")]
-    [else
-     (let* ([selection (selection-text (register->value #\.))]
-            [filename (current-filename)]
-            [out-path (if (null? args) #f (car args))])
-       (cond
-         [(string=? selection "")
-          (set-active-error! "CodeSnap: select some code first")]
-         [(and out-path (or (not (string? out-path)) (string=? (trim out-path) "")))
-          (set-active-error! "CodeSnap: output path cannot be empty")]
-         [else (start-capture selection filename out-path)]))]))
+  (with-handler
+   (lambda (err) (set-error! (string-append "CodeSnap: " (error-object-message err))))
+   (cond
+     [*codesnap-busy* (set-status! "CodeSnap: a capture is already running")]
+     [(> (length args) 1)
+      (set-error! "CodeSnap accepts one output path; quote paths containing spaces")]
+     [(not (which "silicon"))
+      (set-error! "CodeSnap: Silicon is not installed or not on PATH")]
+     [else
+      (let* ([input (if (null? args) #f (car args))]
+             [_ (when (and (pair? args)
+                           (or (not (string? input)) (string=? (trim input) "")))
+                  (error "Output path cannot be empty"))]
+             [out-path (and input (absolute-path input))]
+             [_ (when (and out-path (is-dir? out-path))
+                  (error "Choose an image filename, not a directory"))]
+             [snapshot (capture-snapshot out-path)])
+        (if (and out-path (path-exists? out-path))
+            (push-component!
+             (prompt (string-append "Replace "
+                                    (let ([name (path-basename out-path)])
+                                      (if (> (string-length name) 24)
+                                          (string-append (substring name 0 21) "...") name))
+                                    "? Type yes: ")
+                     (lambda (answer)
+                       (when (string=? (trim answer) "yes")
+                         (start-capture snapshot out-path #t)))))
+            (start-capture snapshot out-path #f)))]))
+  void)
 
 ;; Captures the current selection using the active settings.
 (define (codesnap . args)
   (apply codesnap-execute args))
 
-;; Lists locally installed Silicon themes, falling back to bundled names.
-(define (codesnap-themes)
+;; Chooses a unique PNG name in the last save directory, Pictures, or the current directory.
+(define (codesnap-default-path)
+  (let* ([pictures (absolute-path "~/Pictures")]
+         [directory (or (and *codesnap-save-directory*
+                             (is-dir? *codesnap-save-directory*)
+                             *codesnap-save-directory*)
+                        (if (is-dir? pictures) pictures (current-directory)))]
+         [name (capture-name (editor-document->path (current-document))
+                             (local-time/now! "%Y%m%d-%H%M%S"))]
+         [base (string-append directory "/" (substring name 0 (- (string-length name) 4)))])
+    (let loop ([index 0])
+      (let ([path (string-append base (if (= index 0) "" (string-append "-" (number->string index))) ".png")])
+        (if (path-exists? path) (loop (+ index 1)) path)))))
+
+;; Returns Silicon's installed values, with a usable fallback if discovery fails.
+(define (silicon-values flag fallback)
   (if (not (which "silicon"))
-      default-themes
-      (let* ([result (run-program "silicon" '("--list-themes") #f)]
-             [themes (if (render-success? result)
+      fallback
+      (let* ([result (run-program "silicon" (list flag) #f)]
+             [values (if (render-success? result)
                          (filter (lambda (item) (not (string=? item "")))
                                  (map trim (split-many (hash-ref result 'stdout) "\n")))
                          '())])
-        (if (null? themes) default-themes themes))))
+        (if (null? values) fallback values))))
 
-;; Sets the active syntax highlighting theme.
+;; Lists installed syntax themes.
+(define (codesnap-themes)
+  (silicon-values "--list-themes" default-themes))
+
+;; Lists installed font families, including Silicon's bundled Hack font.
+(define (codesnap-fonts)
+  (current-first (silicon-values "--list-fonts" '()) "Hack"))
+
+;; Restores rendering defaults without discarding the last saved capture.
+(define (codesnap-reset)
+  (codesnap-configure! #:theme "Dracula" #:background "#aaaaff" #:shadow-blur 15
+                      #:window-controls? #t #:show-title? #t #:line-numbers? #t
+                      #:pad-horiz 80 #:pad-vert 100 #:font "Hack" #:font-size 26
+                      #:tab-width #f #:original-line-numbers? #f #:dedent? #f)
+  (set-status! "CodeSnap: defaults restored")
+  void)
+
+;; Opens a Scheme configuration snippet in a new scratch buffer for saving or copying.
+(define (codesnap-export)
+  (let ([port (open-output-string)])
+    (display "(codesnap-configure!" port)
+    (for-each
+     (lambda (entry)
+       (display "\n  " port)
+       (display (car entry) port)
+       (display " " port)
+       (write (cdr entry) port))
+     (list (cons "#:theme" *codesnap-theme*) (cons "#:background" *codesnap-background*)
+           (cons "#:shadow-blur" *codesnap-shadow-blur*)
+           (cons "#:window-controls?" *codesnap-window-controls*)
+           (cons "#:show-title?" *codesnap-show-title*) (cons "#:line-numbers?" *codesnap-line-numbers*)
+           (cons "#:pad-horiz" *codesnap-pad-horiz*) (cons "#:pad-vert" *codesnap-pad-vert*)
+           (cons "#:font" *codesnap-font*) (cons "#:font-size" *codesnap-font-size*)
+           (cons "#:tab-width" *codesnap-tab-width*)
+           (cons "#:original-line-numbers?" *codesnap-original-lines*)
+           (cons "#:dedent?" *codesnap-dedent*)))
+    (display ")\n" port)
+    (new)
+    (insert_string (get-output-string port))
+    (set-status! "CodeSnap: copy this configuration into helix.scm"))
+  void)
+
+;; Opens the last saved image with the operating system's image viewer.
+(define (codesnap-open-last)
+  (cond
+    [(or (not *codesnap-last-path*) (not (is-file? *codesnap-last-path*)))
+     (set-error! "CodeSnap: no saved capture is available")]
+    [else
+     (let* ([path *codesnap-last-path*]
+            [opener (cond [(which "xdg-open") "xdg-open"]
+                          [(which "open") "open"]
+                          [(which "rundll32.exe") "rundll32.exe"]
+                          [else #f])])
+       (if (not opener)
+           (set-error! "CodeSnap: no system image opener was found")
+           (begin
+             (set-status! (string-append "CodeSnap opening: " path))
+             (spawn-native-thread
+              (lambda ()
+                (let ([result (run-program opener
+                                           (if (equal? opener "rundll32.exe")
+                                               (list "url.dll,FileProtocolHandler" path) (list path))
+                                           #f)])
+                  (when (not (equal? (hash-ref result 'exit) 0))
+                    (hx.with-context
+                     (lambda () (set-error! (string-append "CodeSnap: " (render-error-message result))))))))))))])
+  void)
+
+;; Sets the active syntax theme.
 (define (codesnap-theme theme)
   (codesnap-configure! #:theme theme)
-  (set-temporary-status! (string-append "CodeSnap theme: " theme)))
+  (set-status! (string-append "CodeSnap theme: " theme))
+  void)
 
-;; Sets the active background color.
+;; Sets the active background.
 (define (codesnap-bg background)
   (codesnap-configure! #:background background)
-  (set-temporary-status! (string-append "CodeSnap background: " background)))
+  (set-status! (string-append "CodeSnap background: " background))
+  void)
 
-;; Retrieves the active theme name.
+;; Returns whether a capture is running.
+(define (get-codesnap-busy) *codesnap-busy*)
+;; Returns the last successfully saved image path.
+(define (get-codesnap-last-path) *codesnap-last-path*)
+;; Returns the active syntax theme.
 (define (get-codesnap-theme) *codesnap-theme*)
-
-;; Retrieves the active background color.
+;; Returns the active background color.
 (define (get-codesnap-bg) *codesnap-background*)
-
-;; Retrieves window control visibility.
-(define (get-codesnap-window-controls) *codesnap-window-controls*)
-
-;; Retrieves window title visibility.
-(define (get-codesnap-show-title) *codesnap-show-title*)
-
-;; Retrieves line number visibility.
-(define (get-codesnap-line-numbers) *codesnap-line-numbers*)
-
-;; Retrieves the shadow blur radius.
+;; Returns the shadow blur radius.
 (define (get-codesnap-shadow-blur) *codesnap-shadow-blur*)
-
-;; Retrieves horizontal padding.
+;; Returns window control visibility.
+(define (get-codesnap-window-controls) *codesnap-window-controls*)
+;; Returns window title visibility.
+(define (get-codesnap-show-title) *codesnap-show-title*)
+;; Returns line number visibility.
+(define (get-codesnap-line-numbers) *codesnap-line-numbers*)
+;; Returns horizontal padding.
 (define (get-codesnap-pad-horiz) *codesnap-pad-horiz*)
-
-;; Retrieves vertical padding.
+;; Returns vertical padding.
 (define (get-codesnap-pad-vert) *codesnap-pad-vert*)
+;; Returns the font family list.
+(define (get-codesnap-font) *codesnap-font*)
+;; Returns the font size.
+(define (get-codesnap-font-size) *codesnap-font-size*)
+;; Returns the tab override, or false to follow the editor.
+(define (get-codesnap-tab-width) *codesnap-tab-width*)
+;; Returns whether source line numbering is enabled.
+(define (get-codesnap-original-lines) *codesnap-original-lines*)
+;; Returns whether common indentation is removed.
+(define (get-codesnap-dedent) *codesnap-dedent*)
 
-;; Updates window control visibility after validation.
-(define (codesnap-set-window-controls! value)
-  (codesnap-configure! #:window-controls? value))
-
-;; Updates window title visibility after validation.
-(define (codesnap-set-show-title! value)
-  (codesnap-configure! #:show-title? value))
-
-;; Updates line number visibility after validation.
-(define (codesnap-set-line-numbers! value)
-  (codesnap-configure! #:line-numbers? value))
-
-;; Updates shadow blur after validation.
-(define (codesnap-set-shadow-blur! value)
-  (codesnap-configure! #:shadow-blur value))
-
-;; Updates horizontal padding after validation.
-(define (codesnap-set-pad-horiz! value)
-  (codesnap-configure! #:pad-horiz value))
-
-;; Updates vertical padding after validation.
-(define (codesnap-set-pad-vert! value)
-  (codesnap-configure! #:pad-vert value))
+;; Updates the shadow blur radius.
+(define (codesnap-set-shadow-blur! value) (codesnap-configure! #:shadow-blur value))
+;; Updates window control visibility.
+(define (codesnap-set-window-controls! value) (codesnap-configure! #:window-controls? value))
+;; Updates window title visibility.
+(define (codesnap-set-show-title! value) (codesnap-configure! #:show-title? value))
+;; Updates line number visibility.
+(define (codesnap-set-line-numbers! value) (codesnap-configure! #:line-numbers? value))
+;; Updates horizontal padding.
+(define (codesnap-set-pad-horiz! value) (codesnap-configure! #:pad-horiz value))
+;; Updates vertical padding.
+(define (codesnap-set-pad-vert! value) (codesnap-configure! #:pad-vert value))
+;; Updates the font family list.
+(define (codesnap-set-font! value) (codesnap-configure! #:font value))
+;; Updates font size.
+(define (codesnap-set-font-size! value) (codesnap-configure! #:font-size value))
+;; Updates the tab override.
+(define (codesnap-set-tab-width! value) (codesnap-configure! #:tab-width value))
+;; Updates source line numbering.
+(define (codesnap-set-original-lines! value) (codesnap-configure! #:original-line-numbers? value))
+;; Updates common indentation removal.
+(define (codesnap-set-dedent! value) (codesnap-configure! #:dedent? value))

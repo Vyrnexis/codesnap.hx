@@ -3,6 +3,11 @@
          valid-dimension?
          config-validation-error
          selection-text
+         dedent-text
+         font-validation-error
+         capture-languages
+         capture-name
+         picker-scale
          path-basename
          path-extension
          current-first
@@ -62,7 +67,91 @@
 
 ;; Joins multiple Helix selections as separate source lines.
 (define (selection-text fragments)
-  (string-join fragments "\n"))
+  (let loop ([remaining fragments] [previous ""] [parts '()])
+    (if (null? remaining)
+        (string-join (reverse parts) "")
+        (let* ([fragment (car remaining)]
+               [separator (if (or (null? parts) (string=? previous "")
+                                  (ends-with? previous "\n")
+                                  (ends-with? previous "\r")
+                                  (starts-with? fragment "\n")
+                                  (starts-with? fragment "\r"))
+                              "" "\n")])
+          (loop (cdr remaining) fragment (cons fragment (cons separator parts)))))))
+
+;; Counts leading spaces and tabs without touching code or line endings.
+(define (indent-length line)
+  (let loop ([idx 0])
+    (if (and (< idx (string-length line))
+             (member (string-ref line idx) '(#\space #\tab)))
+        (loop (+ idx 1))
+        idx)))
+
+;; Removes the common whitespace prefix of nonblank lines, preserving relative indentation.
+(define (dedent-text text)
+  (let* ([lines (split-many text "\n")]
+         [nonblank (filter (lambda (line) (not (string=? (trim line) ""))) lines)]
+         [prefix (if (null? nonblank) ""
+                     (foldl
+                      (lambda (line prefix)
+                        (let loop ([idx 0])
+                          (if (and (< idx (string-length prefix))
+                                   (< idx (indent-length line))
+                                   (char=? (string-ref prefix idx) (string-ref line idx)))
+                              (loop (+ idx 1))
+                              (substring prefix 0 idx))))
+                      (substring (car nonblank) 0 (indent-length (car nonblank)))
+                      (cdr nonblank)))])
+    (string-join
+     (map (lambda (line)
+            (if (starts-with? line prefix)
+                (substring line (string-length prefix) (string-length line))
+                line))
+          lines)
+     "\n")))
+
+;; Validates a font family list; sizes are supplied separately to avoid Silicon parser panics.
+(define (font-validation-error font size)
+  (cond
+    [(or (not (string? font)) (string=? (trim font) "")
+         (string-contains? font "=")
+         (string-contains? font "\n") (string-contains? font "\r")
+         (member "" (map trim (split-many font ";"))))
+     "CodeSnap font must contain font families separated by semicolons, without sizes"]
+    [(not (and (integer? size) (<= 1 size) (<= size 256)))
+     "CodeSnap font size must be an integer from 1 to 256"]
+    [else #f]))
+
+;; Keeps the requested syntax first, followed by a distinct extension and fallback.
+(define (capture-languages lang filename)
+  (reverse
+   (foldl (lambda (item acc)
+            (if (or (not item) (member item acc)) acc (cons item acc)))
+          '() (list lang (path-extension filename) "markdown"))))
+
+;; Builds a portable source-derived PNG filename using the supplied timestamp.
+(define (capture-name filename timestamp)
+  (let* ([name (or (path-basename filename) "untitled")]
+         [extension (path-extension name)]
+         [stem (if extension
+                   (substring name 0 (- (string-length name) (string-length extension) 1))
+                   name)]
+         [safe (list->string
+                (map (lambda (ch)
+                       (let ([code (char->integer ch)])
+                         (if (or (and (<= 65 code) (<= code 90))
+                                 (and (<= 97 code) (<= code 122))
+                                 (and (<= 48 code) (<= code 57))
+                                 (member ch '(#\- #\_))) ch #\-)))
+                     (string->list stem)))])
+    (string-append (if (string=? safe "") "untitled" safe) "-" timestamp ".png")))
+
+;; Fits picker content into the available area using the library's percentage geometry.
+(define (picker-scale width height rows)
+  (let ([w (max 1 width)] [h (max 1 (- height 2))])
+    (min 100 (max 10
+                  (quotient (+ 5800 w -1) w)
+                  (quotient (+ (* 100 (+ rows 7)) h -1) h)))))
 
 ;; Extracts the filename component from a platform path.
 (define (path-basename path)
@@ -97,14 +186,22 @@
 ;; Builds Silicon argv without invoking a shell.
 (define (build-silicon-args lang filename theme background shadow-blur
                             window-controls? show-title? line-numbers?
-                            pad-horiz pad-vert out-path)
+                            pad-horiz pad-vert out-path
+                            #:font [font "Hack"] #:font-size [font-size 26]
+                            #:tab-width [tab-width 4] #:line-offset [line-offset 1])
   (append
    (list "-l" lang
          "--theme" theme
          "--background" background
-         "--shadow-blur-radius" (number->string shadow-blur)
-         "--pad-horiz" (number->string pad-horiz)
-         "--pad-vert" (number->string pad-vert))
+         "--shadow-blur-radius" (number->string (exact shadow-blur))
+         "--pad-horiz" (number->string (exact pad-horiz))
+         "--pad-vert" (number->string (exact pad-vert))
+         "--font" (string-join
+                   (map (lambda (family)
+                          (string-append (trim family) "=" (number->string font-size)))
+                        (split-many font ";")) ";")
+         "--tab-width" (number->string (exact tab-width))
+         "--line-offset" (number->string (exact line-offset)))
    (if (and show-title? filename)
        (list "--window-title" (path-basename filename))
        '())

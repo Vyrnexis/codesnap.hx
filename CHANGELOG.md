@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refresh the background picker's current colour and active preset marker immediately after applying a colour.
 - Keep menu rows stationary until the highlight crosses a visible edge, retaining wraparound navigation.
 - Preserve Silicon diagnostics, including exit-zero failures, and retry unsupported clipboard syntaxes.
 - Isolate external Silicon configuration and prevent overlapping captures.

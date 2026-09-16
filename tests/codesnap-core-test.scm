@@ -57,6 +57,21 @@
        (equal? (current-first '("one" "two" "three") "two")
                '("two" "one" "three")))
 
+(let ([parse-color (lambda (label) (car (split-many label " ")))])
+  (check "named background preset is marked by its color value"
+         (equal? (setting-choice-label "#2e3440 (Nord)" "#2e3440" parse-color)
+                 "* #2e3440 (Nord)"))
+  (check "previous background preset loses its marker"
+         (equal? (setting-choice-label "#aaaaff (Dracula)" "#2e3440" parse-color)
+                 "  #aaaaff (Dracula)"))
+  (check "current background row reads the active color"
+         (equal? (setting-choice-label 'current "#2e3440" parse-color)
+                 "  Current: #2e3440")))
+(check "numeric preset markers still work"
+       (equal? (setting-choice-label "26" 26 string->number) "* 26"))
+(check "custom entry is never parsed as a preset"
+       (equal? (setting-choice-label "Custom..." 26 string->number) "  Custom..."))
+
 (let ([args (build-silicon-args
              "lisp" "/tmp/name \"$(safe).scm" "Dracula" "#aaaaff"
              15 #t #t #t 80 100 "/tmp/output name.png")])

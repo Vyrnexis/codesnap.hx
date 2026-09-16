@@ -11,6 +11,7 @@
          path-basename
          path-extension
          current-first
+         setting-choice-label
          build-silicon-args
          unsupported-language-error?)
 
@@ -182,6 +183,15 @@
 ;; Moves the current value to the front, adding it when absent.
 (define (current-first items current)
   (cons current (filter (lambda (item) (not (equal? item current))) items)))
+
+;; Formats a live current-value row or marks the preset whose parsed value is active.
+(define (setting-choice-label item current parse)
+  (if (eq? item 'current)
+      (string-append "  Current: " (to-string current))
+      (string-append
+       (if (and (not (equal? item "Custom..."))
+                (equal? (parse item) (parse (to-string current)))) "* " "  ")
+       item)))
 
 ;; Builds Silicon argv without invoking a shell.
 (define (build-silicon-args lang filename theme background shadow-blur

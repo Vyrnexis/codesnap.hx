@@ -52,19 +52,19 @@
                (apply-setting! setter (parse input)))))))
 
 ;; Shows current values, presets and a custom entry using the existing picker.
-(define (show-setting-picker title getter setter options parse searchable?)
+(define (show-setting-picker title getter setter options parse searchable?
+                             #:live-current? [live-current? #f])
   (let* ([name "codesnap-value-picker"]
          [current (to-string (getter))]
-         [items (append (current-first options current) '("Custom..."))]
+         [items (append (if live-current? (cons 'current options)
+                            (current-first options current)) '("Custom..."))]
          [spec (make-picker
                 #:name name #:title (truncate-string/dots title (menu-text-width 12))
                 #:instructions (menu-hint (if searchable? "Type to search; Enter" "Space:apply Enter:OK") 12)
                 #:items items #:filter? searchable? #:close-mode 'pop
                 #:selected-style 'theme
                 #:overlay-scale (lambda () (menu-scale (min 12 (+ (length items) (if searchable? 2 0)))))
-                #:item-label (lambda (item)
-                               (string-append
-                                (if (equal? item (to-string (getter))) "* " "  ") item))
+                #:item-label (lambda (item) (setting-choice-label item (getter) parse))
                 #:keys
                 (lambda (state-box event)
                   (let ([choice (picker-current-item (unbox state-box))])
@@ -78,7 +78,8 @@
                            (when (key-event-enter? event)
                              (pop-last-component-by-name! name)
                              (prompt-setting title getter setter parse))
-                           (when (apply-setting! setter (parse choice))
+                           (when (apply-setting! setter
+                                                 (if (eq? choice 'current) (getter) (parse choice)))
                              (when (key-event-enter? event)
                                (pop-last-component-by-name! name))))
                        event-result/consume]
@@ -97,7 +98,7 @@
    '("#aaaaff (Dracula)" "#2e3440 (Nord)" "#282c34 (One Dark)"
      "#282828 (Gruvbox)" "#002b36 (Solarized)" "#000000 (Black)"
      "#ffffff (White)" "#00000000 (Transparent)")
-   color-value #f))
+   color-value #f #:live-current? #t))
 
 ;; Presents a number picker with custom entry and validation in the setting setter.
 (define (show-number-picker title getter setter options)

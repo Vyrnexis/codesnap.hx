@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep menu rows stationary until the highlight crosses a visible edge, retaining wraparound navigation.
 - Preserve Silicon diagnostics, including exit-zero failures, and retry unsupported clipboard syntaxes.
 - Isolate external Silicon configuration and prevent overlapping captures.
 - Stage file captures safely, confirm replacements, and preserve existing images on render failure.

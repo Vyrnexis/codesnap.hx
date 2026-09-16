@@ -4,7 +4,7 @@
                   key-event-enter? key-event-right? key-event-left? key-event-escape?
                   prompt push-component! pop-last-component-by-name! event-result/consume
                   area-width area-height))
-(require (only-in "ui-utils.hx/picker.scm" show-picker! picker-current-item))
+(require (only-in "codesnap-picker.scm" show-picker! picker-current-item))
 (require (only-in "ui-utils.hx/picker-model.scm" make-picker))
 (require (only-in "ui-utils.hx/keys.scm" char-is?))
 (require (only-in "ui-utils.hx/strings.scm" truncate-left truncate-string/dots))
@@ -60,7 +60,7 @@
                 #:name name #:title (truncate-string/dots title (menu-text-width 12))
                 #:instructions (menu-hint (if searchable? "Type to search; Enter" "Space:apply Enter:OK") 12)
                 #:items items #:filter? searchable? #:close-mode 'pop
-                #:selected-style 'theme #:scroll-padding 0
+                #:selected-style 'theme
                 #:overlay-scale (lambda () (menu-scale (min 12 (+ (length items) (if searchable? 2 0)))))
                 #:item-label (lambda (item)
                                (string-append
@@ -162,7 +162,7 @@
      (make-picker
       #:name "codesnap-settings-menu" #:title "Settings"
       #:instructions (menu-hint "Enter:open Space:toggle" 12) #:items items #:close-mode 'pop
-      #:selected-style 'theme #:scroll-padding 0
+      #:selected-style 'theme
       #:overlay-scale (lambda () (menu-scale (min 12 (length items))))
       #:item-label
       (lambda (item)
@@ -219,7 +219,7 @@
     #:title (truncate-left (string-append "Save in " directory) (menu-text-width 12))
     #:instructions (menu-hint "Type path; Enter:save" 12)
     #:items (save-path-choices directory default-name "")
-    #:filter? #t #:close-mode 'pop #:selected-style 'theme #:scroll-padding 0
+    #:filter? #t #:close-mode 'pop #:selected-style 'theme
     #:overlay-scale (lambda () (menu-scale 12))
     #:filter-fn (lambda (_ input) (save-path-choices directory default-name input))
     #:item-label (lambda (path)
@@ -243,7 +243,7 @@
     #:name "codesnap-main-menu" #:title "CodeSnap"
     #:instructions (menu-hint "Enter:select Esc:back" 4)
     #:items '("Snap to Clipboard" "Snap to File..." "Open Last Capture" "Settings >")
-    #:close-mode 'pop #:selected-style 'theme #:scroll-padding 0
+    #:close-mode 'pop #:selected-style 'theme
     #:overlay-scale (lambda () (menu-scale 4))
     #:keys
     (lambda (state-box event)

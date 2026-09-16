@@ -2,9 +2,13 @@
 (require "../../codesnap-menu.scm")
 (require "helix/misc.scm")
 (require "helix/editor.scm")
+(require (only-in "helix/components.scm" key-event-enter? pop-last-component-by-name!
+                  event-result/consume))
+(require (only-in "../../codesnap-picker.scm" show-picker! picker-current-item))
+(require (only-in "ui-utils.hx/picker-model.scm" make-picker))
 (require-builtin steel/time)
 (provide codesnap codesnap-menu codesnap-reset codesnap-export codesnap-open-last
-         codesnap-check-start codesnap-check-finish)
+         codesnap-check-start codesnap-check-finish codesnap-check-menu)
 
 (define check-path #f)
 (define check-selection #f)
@@ -41,5 +45,27 @@
   (assert! (equal? check-path (get-codesnap-last-path)))
   (set-status! "CodeSnap integration: all checks passed")
   void)
+
+;; Checks that moving to the second row retains every item in a short menu.
+(define (codesnap-check-menu)
+  (let ([visible '()] [items '("first" "second" "third" "fourth")])
+    (show-picker!
+     (make-picker
+      #:name "codesnap-scroll-check" #:title "Menu scrolling check"
+      #:instructions "Press j, then Enter" #:items items
+      #:overlay-scale (lambda () (set! visible '()) 90)
+      #:item-label (lambda (item) (set! visible (append visible (list item))) item)
+      #:keys (lambda (state-box event)
+               (if (key-event-enter? event)
+                   (begin
+                     (when (not (equal? (picker-current-item (unbox state-box)) "second"))
+                       (error "Select the second row before checking"))
+                     (when (not (equal? visible items))
+                       (error "Menu rows scrolled before reaching the visible edge"))
+                     (pop-last-component-by-name! "codesnap-scroll-check")
+                     (set-status! "CodeSnap menu scrolling: check passed")
+                     event-result/consume)
+                   #f))))
+    void))
 
 (set-status! "CodeSnap integration loaded")

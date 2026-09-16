@@ -88,6 +88,7 @@ The `:codesnap-menu` is the main interface for captures and interactive settings
 **Navigation:**
 
 - Use **Up / Down** arrows (or `j` / `k`) to navigate items.
+- The highlight moves through visible rows; the list scrolls only at an edge and wraps between the first and last item.
 - Use **Enter** to execute snap actions, open submenus, or apply a setting and return.
 - Use **Space** to apply a non-searchable preset without closing, or toggle switches (ON/OFF).
 - Use **Right** arrow (or `l`) to expand submenus.
@@ -150,6 +151,10 @@ steel tests/codesnap-process-test.scm
 For a manual Helix smoke test, launch your Steel-enabled Helix with `HELIX_STEEL_CONFIG="$PWD/tests/helix" hx --config tests/helix/config.toml tests/codesnap-core-test.scm`. The pinned `ui-utils.hx` dependency must already be installed. Select a line, test the save picker and overwrite cancellation, search themes, and export settings. Keep test images under the ignored `.test-work/` directory.
 
 With `.test-work/` created and Silicon installed, run `:codesnap-check-start` on a selection, wait for the saved status, then run `:codesnap-check-finish`. These test-only commands check atomic configuration validation, overlapping-capture rejection, file publication, selection preservation, and reset behavior.
+
+To check menu scrolling, use a short terminal (for example, 70 columns by 18 rows) and open `:codesnap-menu`. Move through all four actions: their positions must remain fixed, including when wrapping. In Settings, move past the last visible row, then reverse direction: the list must scroll only when crossing either visible edge. Repeat with the searchable Theme picker using arrow keys; changing the search text must reset the highlight and scroll position to the first match.
+
+The isolated configuration also provides `:codesnap-check-menu`: press `j`, then Enter to assert that moving the highlight retains all four visible rows. Repeat with five `j` presses to check the same behavior after wrapping.
 
 ## Updating
 

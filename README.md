@@ -1,23 +1,48 @@
 # codesnap.hx
 
 [![Tests](https://github.com/Vyrnexis/codesnap.hx/actions/workflows/test.yml/badge.svg)](https://github.com/Vyrnexis/codesnap.hx/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![Screenshot of CodeSnap in action](screenshots/screenshot.png)
+Turn code selected in [Helix](https://github.com/helix-editor/helix) into a polished image, like CodeSnap or Polacode for VS Code. Rendering is done by [Silicon](https://github.com/Aloxaf/silicon).
 
-A plugin for [Helix](https://github.com/helix-editor/helix) using the [Steel plugin branch](https://github.com/mattwparas/helix/tree/steel-event-system) that renders selected code as an image.
+![CodeSnap in action](screenshots/screenshot.png)
 
-Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your current visual selection to [silicon](https://github.com/Aloxaf/silicon) to generate the image.
+## Quick start
+
+```bash
+cargo install silicon
+forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
+```
+
+Add to `~/.config/helix/helix.scm`:
+
+```scheme
+(require (only-in "codesnap/codesnap.scm" codesnap-copy codesnap-save codesnap-doctor))
+(require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
+(provide codesnap-menu codesnap-copy codesnap-save codesnap-doctor)
+```
+
+Restart Helix, run `:codesnap-doctor` to confirm everything is found, then select some code (`v` or `x`) and run `:codesnap-menu`.
+
+## Requirements
+
+| Requirement | Notes |
+| --- | --- |
+| Helix with Steel | A build of the [Steel plugin branch](https://github.com/mattwparas/helix/tree/steel-event-system). The plugin system is not yet part of released Helix. |
+| [Silicon](https://github.com/Aloxaf/silicon) 0.5.0+ | Renders the image. Tested with 0.5.2. |
+| Clipboard tool (Linux only) | `wl-clipboard` on Wayland, `xclip` or `xsel` on X11. Only needed for copying; saving files works without it. |
+
+Linux is the primary, tested platform. macOS and Windows path handling exists but is untested.
 
 ## Features
 
-- Copy rendered code directly to the system clipboard.
-- Complete save paths, suggest unique filenames, and remember the last save directory.
-- Confirm overwrites and preserve existing images if rendering fails.
-- Search installed themes and fonts; customize colors, font size, padding, and shadows.
-- Follow editor tab width, optionally retain source line numbers, and remove common indentation.
-- Preserve multiple selections without adding duplicate line breaks.
-- Render asynchronously, prevent overlapping captures, and open the last saved image.
-- Reset defaults or export current settings as a ready-to-copy configuration snippet.
+- Copy the image to the clipboard, or save it with path completion, unique default filenames, and a remembered directory.
+- Confirm before overwriting, and keep the existing image if rendering fails.
+- Pick from installed Silicon themes and fonts; adjust colors, font size, padding, and shadow.
+- Follow the editor's tab width, optionally keep source line numbers, and strip common indentation.
+- Multiple selections are captured together without extra blank lines.
+- Renders in the background, rejects overlapping captures, and can open the last image.
+- Save your settings once and they apply in every session.
 
 ## Interface
 
@@ -25,144 +50,123 @@ Similar to CodeSnap or Polacode for VS Code, but for Helix. It pipes your curren
   <img src="screenshots/menu.png" alt="CodeSnap main menu" width="48%" />
   <img src="screenshots/settings.png" alt="CodeSnap settings menu" width="48%" />
 </p>
-
 <p align="center">
   <img src="screenshots/save.snap.dialog.png" alt="CodeSnap save path picker" width="48%" />
-  <img src="screenshots/export.config.in.buffer.png" alt="Exported CodeSnap configuration in a Helix scratch buffer" width="48%" />
+  <img src="screenshots/export.config.in.buffer.png" alt="Exported configuration in a scratch buffer" width="48%" />
 </p>
 
-## Requirements
+## Commands
 
-1. **Helix with Steel**: You need a build of Helix that includes the Scheme/Steel plugin system.
-2. **Silicon**: Does the actual image generation.
-   ```bash
-   cargo install silicon
-   ```
+Select code first, then run any of these from the command palette (`:`).
 
-Silicon owns clipboard integration. On Linux, install the clipboard tool required by Silicon for your Wayland or X11 session.
+| Command | What it does |
+| --- | --- |
+| `:codesnap-menu` | Opens the interactive menu: capture, open last image, settings, setup check. |
+| `:codesnap-copy` | Copies the image to the clipboard (`:codesnap` is an alias). |
+| `:codesnap-save [path]` | Saves to `path`, or to a unique filename when omitted. Quote paths with spaces: `:codesnap-save "~/Desktop/my code.png"`. |
+| `:codesnap-open-last` | Opens the last saved image in your system viewer. |
+| `:codesnap-save-config` | Saves the current settings (see [Settings](#settings)). |
+| `:codesnap-reset` | Restores default rendering settings. |
+| `:codesnap-export` | Opens the current settings as a `codesnap-configure!` snippet in a scratch buffer. |
+| `:codesnap-doctor` | Reports the Silicon version, clipboard tools, settings file, and any problems. |
 
-## Installation & Setup
+Only commands listed in `(provide ...)` in `helix.scm` appear in Helix. Add the ones you want to the Quick start snippet.
 
-1. Install the plugin using `forge` (the Steel package manager):
+### Key bindings
 
-```bash
-forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git
-```
-
-2. Add these lines to your `~/.config/helix/helix.scm` file:
+Add to `~/.config/helix/init.scm` to open the menu with `Space x` in select mode (use any free key):
 
 ```scheme
-(require (only-in "codesnap/codesnap.scm"
-                  codesnap codesnap-configure! codesnap-reset codesnap-export codesnap-open-last))
-(require (only-in "codesnap/codesnap-menu.scm" codesnap-menu))
-
-;; Optional: Customize default settings (values shown are defaults)
-(codesnap-configure! #:theme "Dracula"                 ; Syntax highlighting theme (run `silicon --list-themes` for options)
-                     #:background "#aaaaff"            ; Hex color for the background behind the code window
-                     #:shadow-blur 15                  ; Size of the drop shadow blur (set to 0 to disable)
-                     #:window-controls? #t             ; Show macOS-style window controls
-                     #:show-title? #t                  ; Show the filename in the window title bar
-                     #:line-numbers? #t                ; Show line numbers on the left side
-                     #:pad-horiz 80                    ; Horizontal padding (pixels) around the code window
-                     #:pad-vert 100                    ; Vertical padding (pixels) around the code window
-                     #:font "Hack"                     ; Bundled font; separate fallback families with semicolons
-                     #:font-size 26                    ; Integer from 1 to 256
-                     #:tab-width #f                    ; Follow editor/language settings; or set 1 to 255
-                     #:original-line-numbers? #f        ; Start at the source line for a single selection
-                     #:dedent? #f)                     ; Remove the common space/tab prefix
-
-;; Export only the desired typed commands to the Helix command palette
-(provide codesnap codesnap-menu codesnap-reset codesnap-export codesnap-open-last)
+(require "helix/keymaps.scm")
+(keymap (global) (select (space (x ":codesnap-menu"))))
 ```
 
-## Usage
+Bind `":codesnap-copy"` or `":codesnap-save"` the same way for one-key captures.
 
-Make a visual selection (`v` or `x`) of the code you want to capture, then open the command palette (`:`) and run:
+## The menu
 
-- `:codesnap-menu` — Opens the interactive TUI control panel.
+| Key | Action |
+| --- | --- |
+| Up / Down, `k` / `j` | Move; wraps at the ends |
+| Enter | Run an action, open a submenu, or apply a setting and go back |
+| Space | Apply a preset without closing, or toggle a switch |
+| Right, `l` | Open a submenu |
+| Left, `h`, `q`, Esc | Go back, or close the menu |
 
-### The CodeSnap Menu
+In the searchable theme, font, and save pickers, typing filters the list and Esc cancels.
 
-The `:codesnap-menu` is the main interface for captures and interactive settings.
+- **Snap to Clipboard** and **Snap to File...** capture the selection. The file picker completes directories and image names as you type; a missing extension becomes `.png`. Replacing an existing file requires typing `yes`.
+- **Open Last Capture** opens the most recent saved image.
+- **Settings >** contains theme, background (including transparent), font, font size, tab width, shadow blur, padding, window controls, title, line numbers, source line numbers, remove common indent, **Save Settings**, **Reset Defaults**, and **Export Configuration**. Choose **Custom...** in any picker to type a value.
+- **Check Setup** runs the same report as `:codesnap-doctor`.
 
-**Navigation:**
+Suggested filenames combine the source file name and a timestamp. The picker starts in the last directory you saved to, otherwise `~/Pictures`, otherwise the current directory.
 
-- Use **Up / Down** arrows (or `j` / `k`) to navigate items.
-- The highlight moves through visible rows; the list scrolls only at an edge and wraps between the first and last item.
-- Use **Enter** to execute snap actions, open submenus, or apply a setting and return.
-- Use **Space** to apply a non-searchable preset without closing, or toggle switches (ON/OFF).
-- Use **Right** arrow (or `l`) to expand submenus.
-- Use **Left** arrow (or `h` / `q`) to return to the parent menu or close the menu.
-- Use **Escape** to return one level, or close the main menu.
-- In searchable theme, font, and save pickers, letters and spaces enter text; use arrow keys to navigate and **Escape** to cancel.
+## Settings
 
-**Actions:**
+Changes made in the menu last for the current session. To keep them, choose **Settings > Save Settings** (or run `:codesnap-save-config`).
 
-- **Snap to Clipboard**: Captures the selection and copies it to your clipboard.
-- **Snap to File...**: Completes directories and image filenames as you type. Enter selects a directory or saves a file; missing extensions default to `.png`.
-- **Open Last Capture**: Opens the last successfully saved image in your system viewer.
-- **Settings >**: Opens the configuration submenu where you can change:
-  - **Theme**, **Background** (including transparency), **Font**, and **Font Size**.
-  - **Tab Width**, **Shadow Blur**, and horizontal/vertical **Padding**.
-  - **Window Controls**, **Window Title**, **Line Numbers**, **Source Line Numbers**, and **Remove Common Indent**.
-  - **Reset Defaults** and **Export Configuration**.
+**`codesnap.toml`** is written to your Helix configuration directory (for example `~/.config/helix/codesnap.toml`) and read when Helix starts. Set the `CODESNAP_CONFIG` environment variable to use another path. Lines that cannot be read are skipped and listed by `:codesnap-doctor`.
 
-Pick **Custom...** to enter a color, font family, theme, or numeric value. Empty input or Escape leaves the setting unchanged. Menus resize to the available view.
+**`codesnap-configure!`** in `helix.scm` is optional and takes precedence over the file. It suits people who keep their Helix configuration in version control. Every argument is optional; the values below are the defaults:
 
-The suggested filename contains the source name and timestamp, with a numeric suffix when needed. It starts in the last successful save directory, otherwise `~/Pictures` if available, or the current directory. Existing files require typing `yes` before replacement.
-
-Settings and the last capture are remembered for the current editor session only. **Export Configuration** opens a scratch buffer; copy its contents into `helix.scm` to persist settings. It does not modify your configuration automatically.
-
-**Source Line Numbers** applies only to a single selection, with line numbers enabled; multiple selections start at 1. **Remove Common Indent** removes the shared whitespace prefix while retaining relative indentation and line endings.
-
-### Direct Commands
-
-If you prefer to bypass the menu, you can use these commands directly:
-
-- `:codesnap` — Captures the selection and copies it to your clipboard immediately using your current settings.
-- `:codesnap <path>` — Saves to a specific file, confirming replacement when it exists (e.g. `:codesnap ~/Desktop/code.png`).
-- `:codesnap-open-last` — Opens the last saved capture.
-- `:codesnap-reset` — Restores rendering defaults.
-- `:codesnap-export` — Opens the current configuration in a scratch buffer.
-
-Quote paths containing spaces, for example `:codesnap "~/Desktop/code sample.png"`.
-
-## Feedback and Errors
-
-CodeSnap displays `rendering...` while Silicon runs and reports success only after checking its exit status and diagnostics. Missing Silicon, invalid settings, unsupported output paths, and clipboard failures are shown in the Helix status line. A second capture is rejected until the first completes; canceling a prompt never starts a capture.
-
-Unsupported Helix language identifiers are retried using the current filename extension and then Markdown syntax.
-
-CodeSnap isolates Silicon's CLI configuration so external defaults cannot conflict with plugin settings. Configure rendering through CodeSnap; installed Silicon fonts and themes remain available. Source text is streamed through stdin. Temporary diagnostic files are cleaned up, and file captures are staged beside their destination before publication, keeping an existing image intact on render failure.
-
-## Development
-
-Run the core and subprocess regression checks (Steel plus a POSIX shell; no Silicon or clipboard required):
-
-```bash
-steel tests/codesnap-core-test.scm
-mkdir -p .test-work/tmp
-PATH="$PWD/tests/fixtures:$PATH" \
-TMPDIR="$PWD/.test-work/tmp" \
-SILICON_CONFIG_PATH="$PWD/tests/fixtures/silicon-config" \
-steel tests/codesnap-process-test.scm
+```scheme
+(require (only-in "codesnap/codesnap.scm" codesnap-configure!))
+(codesnap-configure! #:theme "Dracula"            ; see `silicon --list-themes`
+                     #:background "#aaaaff"       ; #RGB[A] or #RRGGBB[AA]
+                     #:shadow-blur 15             ; 0 disables the shadow
+                     #:window-controls? #t        ; macOS-style window buttons
+                     #:show-title? #t             ; file name in the title bar
+                     #:line-numbers? #t
+                     #:pad-horiz 80               ; pixels
+                     #:pad-vert 100               ; pixels
+                     #:font "Hack"                ; fallbacks separated by semicolons
+                     #:font-size 26               ; 1 to 256
+                     #:tab-width #f               ; #f follows the editor; or 1 to 255
+                     #:original-line-numbers? #f  ; start at the source line (single selection)
+                     #:dedent? #f)                ; remove the common space/tab prefix
 ```
 
-For a manual Helix smoke test, launch your Steel-enabled Helix with `HELIX_STEEL_CONFIG="$PWD/tests/helix" hx --config tests/helix/config.toml tests/codesnap-core-test.scm`. The pinned `ui-utils.hx` dependency must already be installed. Select a line, test the save picker and overwrite cancellation, search themes, and export settings. Keep test images under the ignored `.test-work/` directory.
+Invalid values are rejected as a whole, so a typo never leaves a half-applied configuration.
 
-With `.test-work/` created and Silicon installed, run `:codesnap-check-start` on a selection, wait for the saved status, then run `:codesnap-check-finish`. These test-only commands check atomic configuration validation, overlapping-capture rejection, file publication, selection preservation, and reset behavior.
+## How it behaves
 
-To check menu scrolling, use a short terminal (for example, 70 columns by 18 rows) and open `:codesnap-menu`. Move through all four actions: their positions must remain fixed, including when wrapping. In Settings, move past the last visible row, then reverse direction: the list must scroll only when crossing either visible edge. Repeat with the searchable Theme picker using arrow keys; changing the search text must reset the highlight and scroll position to the first match.
+- The status line shows `rendering...` while Silicon runs and reports success only after checking its exit status and diagnostics. A second capture is refused until the first finishes, and cancelling a prompt never starts one.
+- Source text is streamed to Silicon through stdin; no temporary source files are created.
+- Files are rendered beside their destination and moved into place, so a failed render never damages an existing image.
+- Silicon's own configuration file is ignored so outside defaults cannot conflict with these settings. Installed Silicon themes and fonts remain available.
+- If Silicon does not support Helix's language name, CodeSnap retries with the file extension, then plain Markdown highlighting.
+- With **Source Line Numbers**, a single selection starts at its real line; multiple selections start at 1.
 
-The isolated configuration also provides `:codesnap-check-menu`: press `j`, then Enter to assert that moving the highlight retains all four visible rows. Repeat with five `j` presses to check the same behavior after wrapping.
+## Troubleshooting
+
+Start with `:codesnap-doctor`.
+
+| Symptom | Fix |
+| --- | --- |
+| "Silicon is not installed or not on PATH" | `cargo install silicon`, and make sure `~/.cargo/bin` is on the `PATH` Helix starts with. |
+| Clipboard copy fails on Linux | Install `wl-clipboard` (Wayland) or `xclip`/`xsel` (X11). |
+| Unknown command `:codesnap-menu` | List it in `(provide ...)` in `helix.scm`, then restart Helix. |
+| A setting reverts after restart | Use **Save Settings**. If `helix.scm` calls `codesnap-configure!`, those values override the saved file. |
+| Errors after updating Helix | The Steel plugin API is still experimental. Run `:codesnap-doctor` and open an issue with your Helix commit. |
 
 ## Updating
-
-To pull the latest updates for the plugin, run the install command again with the `--force` flag:
 
 ```bash
 forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --force
 ```
+
+If forge reports "Already up to date" but the version in `forge list` did not change, its cached clone has not advanced. Install a specific commit or tag instead:
+
+```bash
+forge pkg install --git https://github.com/Vyrnexis/codesnap.hx.git --rev <commit-or-tag> --force
+```
+
+See the [changelog](CHANGELOG.md) for what changed.
+
+## Contributing
+
+Tests, architecture notes, and the manual checklist are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

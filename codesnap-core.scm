@@ -13,7 +13,12 @@
          current-first
          setting-choice-label
          build-silicon-args
-         unsupported-language-error?)
+         unsupported-language-error?
+         config->text
+         parse-config-text
+         parse-silicon-version
+         version-at-least?
+         minimum-silicon-version)
 
 (define default-themes
   '("1337" "Coldark-Cold" "Coldark-Dark" "DarkNeon" "Dracula" "GitHub"
@@ -223,3 +228,82 @@
 (define (unsupported-language-error? stderr)
   (or (string-contains? stderr "Unsupported language")
       (string-contains? stderr "Failed to detect the language")))
+
+;; Oldest Silicon release whose command-line flags CodeSnap relies on.
+(define minimum-silicon-version '(0 5 0))
+
+;; Extracts the numeric version from `silicon --version` output such as "silicon 0.5.2".
+(define (parse-silicon-version text)
+  (let* ([words (split-many (trim text) " ")]
+         [token (if (null? words) "" (car (reverse words)))]
+         [parts (map string->number (split-many token "."))])
+    (and (pair? parts) (null? (filter (lambda (part) (not (and (integer? part) (>= part 0)))) parts))
+         parts)))
+
+;; Compares dotted versions component by component, treating missing parts as zero.
+(define (version-at-least? version minimum)
+  (cond
+    [(and (null? version) (null? minimum)) #t]
+    [(null? minimum) #t]
+    [else
+     (let ([a (if (null? version) 0 (car version))] [b (car minimum)])
+       (cond [(> a b) #t]
+             [(< a b) #f]
+             [else (version-at-least? (if (null? version) '() (cdr version)) (cdr minimum))]))]))
+
+;; Renders settings as a small TOML file; false values mean "unset" and are omitted.
+(define (config->text entries)
+  (let ([port (open-output-string)])
+    (display "# CodeSnap settings, written by the CodeSnap menu.\n" port)
+    (display "# Values set with codesnap-configure! in helix.scm override this file.\n" port)
+    (for-each
+     (lambda (entry)
+       (let ([value (cdr entry)])
+         (when (not (eq? value #f))
+           (display (car entry) port)
+           (display " = " port)
+           (cond [(string? value) (write value port)]
+                 [(eq? value #t) (display "true" port)]
+                 [else (display value port)])
+           (display "\n" port))))
+     entries)
+    (get-output-string port)))
+
+;; Parses one `key = value` setting; strings must not contain quotes or backslashes.
+(define (parse-config-value text)
+  (cond
+    [(equal? text "true") #t]
+    [(equal? text "false") #f]
+    [(and (> (string-length text) 1) (starts-with? text "\"") (ends-with? text "\""))
+     (let ([inner (substring text 1 (- (string-length text) 1))])
+       (if (or (string-contains? inner "\"") (string-contains? inner "\\"))
+           (error "unsupported escape")
+           inner))]
+    [(integer? (string->number text)) (string->number text)]
+    [else (error "unsupported value")]))
+
+;; Reads settings text into an alist, reporting malformed lines instead of failing.
+(define (parse-config-text text)
+  (let loop ([lines (split-many text "\n")] [number 1] [entries '()] [warnings '()])
+    (if (null? lines)
+        (hash 'entries (reverse entries) 'warnings (reverse warnings))
+        (let* ([line (trim (car lines))]
+               [position (and (not (string=? line "")) (not (starts-with? line "#"))
+                              (let find ([idx 0])
+                                (cond [(= idx (string-length line)) #f]
+                                      [(char=? (string-ref line idx) #\=) idx]
+                                      [else (find (+ idx 1))])))])
+          (cond
+            [(or (string=? line "") (starts-with? line "#"))
+             (loop (cdr lines) (+ number 1) entries warnings)]
+            [(not position)
+             (loop (cdr lines) (+ number 1) entries
+                   (cons (string-append "line " (number->string number) ": expected key = value") warnings))]
+            [else
+             (let* ([key (trim (substring line 0 position))]
+                    [raw (trim (substring line (+ position 1) (string-length line)))]
+                    [value (with-handler (lambda (_) 'invalid) (parse-config-value raw))])
+               (if (eq? value 'invalid)
+                   (loop (cdr lines) (+ number 1) entries
+                         (cons (string-append "line " (number->string number) ": invalid value for " key) warnings))
+                   (loop (cdr lines) (+ number 1) (cons (cons key value) entries) warnings)))])))))

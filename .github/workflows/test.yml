@@ -3,22 +3,46 @@ name: Tests
 on:
   push:
   pull_request:
+  schedule:
+    # Weekly, to notice upstream Helix or Steel changes before users do.
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
 jobs:
   core:
+    name: Unit checks (Steel ${{ matrix.steel.name }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.steel.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        steel:
+          - name: 0.8.2
+            rev: 2640abca12408c11b0d692b41284815c65856cf8
+            experimental: false
+          - name: master
+            rev: master
+            experimental: true
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Steel 0.8.2
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: steel-${{ matrix.steel.rev }}-${{ runner.os }}
+
+      - name: Install Steel ${{ matrix.steel.name }}
         run: >-
           cargo install
           --git https://github.com/mattwparas/steel.git
-          --rev 2640abca12408c11b0d692b41284815c65856cf8
+          --rev ${{ matrix.steel.rev }}
           --locked
           steel-interpreter
 
@@ -32,3 +56,22 @@ jobs:
           TMPDIR="$PWD/.test-work/tmp" \
           SILICON_CONFIG_PATH="$PWD/tests/fixtures/silicon-config" \
           steel tests/codesnap-process-test.scm
+
+  helix-api:
+    name: Helix Steel API contract
+    runs-on: ubuntu-latest
+    # The Steel branch is experimental; a failure here is a warning to investigate.
+    continue-on-error: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check out the Helix Steel branch
+        uses: actions/checkout@v4
+        with:
+          repository: mattwparas/helix
+          ref: steel-event-system
+          path: helix-steel
+
+      - name: Verify every Helix API name CodeSnap uses still exists
+        run: scripts/check-helix-api.sh helix-steel

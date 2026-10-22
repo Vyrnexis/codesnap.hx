@@ -91,4 +91,28 @@
 
 (check "unsupported language"
        (unsupported-language-error? "[error] Unsupported language: custom"))
+(check "silicon version parses" (equal? (parse-silicon-version "silicon 0.5.2\n") '(0 5 2)))
+(check "garbage version rejected" (not (parse-silicon-version "silicon unknown")))
+(check "newer silicon accepted" (version-at-least? '(0 5 2) minimum-silicon-version))
+(check "older silicon rejected" (not (version-at-least? '(0 4 9) minimum-silicon-version)))
+(check "major bump accepted" (version-at-least? '(1 0 0) minimum-silicon-version))
+(check "short version padded" (version-at-least? '(0 6) minimum-silicon-version))
+
+(let* ([text (config->text (list (cons "theme" "Nord") (cons "shadow-blur" 15)
+                                 (cons "window-controls" #t) (cons "dedent" #f)
+                                 (cons "tab-width" #f) (cons "font" "Hack; DejaVu Sans Mono")))]
+       [parsed (parse-config-text text)]
+       [entries (hash-ref parsed 'entries)])
+  (check "false settings are omitted" (not (string-contains? text "dedent")))
+  (check "round trip keeps strings" (equal? (cdr (assoc "theme" entries)) "Nord"))
+  (check "round trip keeps spaced fonts"
+         (equal? (cdr (assoc "font" entries)) "Hack; DejaVu Sans Mono"))
+  (check "round trip keeps integers" (equal? (cdr (assoc "shadow-blur" entries)) 15))
+  (check "round trip keeps booleans" (eq? (cdr (assoc "window-controls" entries)) #t))
+  (check "clean file has no warnings" (null? (hash-ref parsed 'warnings))))
+
+(let ([parsed (parse-config-text "# note\n\nnot a setting\nfont-size = big\ntheme = \"A\\\\B\"\nbackground = \"#000000\"\n")])
+  (check "valid lines survive bad ones"
+         (equal? (hash-ref parsed 'entries) '(("background" . "#000000"))))
+  (check "each bad line is reported" (= (length (hash-ref parsed 'warnings)) 3)))
 (displayln "codesnap-core: all checks passed")

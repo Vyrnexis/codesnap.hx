@@ -1,18 +1,15 @@
-(require "helix/editor.scm")
 (require "helix/misc.scm")
 (require "helix/ext.scm")
 (require (only-in "helix/components.scm" prompt push-component!))
-(require (only-in "helix/configuration.scm" get-config-option-value get-language-config))
-(require (only-in "helix/commands.scm" new))
-(require (only-in "helix/static.scm" current-selection-object selection->ranges
-                  range->from insert_string))
-(require-builtin helix/core/text as text.)
 (require-builtin steel/process)
 (require-builtin steel/time)
 (require "codesnap-core.scm")
 (require "codesnap-process.scm")
+(require "codesnap-compat.scm")
+(require "codesnap-config.scm")
 
-(provide codesnap codesnap-execute codesnap-theme codesnap-bg codesnap-configure!
+(provide codesnap codesnap-copy codesnap-save codesnap-doctor codesnap-save-config
+         codesnap-take-warnings codesnap-execute codesnap-theme codesnap-bg codesnap-configure!
          codesnap-themes codesnap-fonts codesnap-reset codesnap-export codesnap-open-last
          codesnap-default-path get-codesnap-busy get-codesnap-last-path
          get-codesnap-theme get-codesnap-bg get-codesnap-shadow-blur
@@ -91,34 +88,20 @@
     [(member lang '("txt" "text" "plaintext")) "markdown"]
     [else lang]))
 
-;; Reads the focused document ID for metadata and selection snapshots.
-(define (current-document)
-  (editor->doc-id (editor-focus)))
-
 ;; Resolves tab width from an explicit override, editor settings, or language configuration.
 (define (capture-tab-width language)
   (or *codesnap-tab-width*
-      (with-handler
-       (lambda (_) #f)
-       (let ([width (get-config-option-value "tab-width")])
-         (and (integer? width) (> width 0) width)))
-      (with-handler
-       (lambda (_) #f)
-       (let ([width (hash-ref (hash-ref (get-language-config language) 'indent) 'tab-width)])
-         (and (integer? width) (> width 0) width)))
+      (compat-editor-tab-width)
+      (compat-language-tab-width language)
       4))
 
 ;; Snapshots source, metadata and arguments without touching the editor selection.
 (define (capture-snapshot out-path)
-  (let* ([doc (current-document)]
-         [filename (editor-document->path doc)]
-         [language (editor-document->language doc)]
-         [fragments (register->value #\.)]
-         [selection (selection-text fragments)]
-         [ranges (selection->ranges (current-selection-object))]
-         [offset (if (and *codesnap-original-lines* (= (length ranges) 1))
-                     (+ 1 (text.rope-char->line (editor->text doc) (range->from (car ranges))))
-                     1)]
+  (let* ([doc (compat-document)]
+         [filename (compat-document-path doc)]
+         [language (compat-document-language doc)]
+         [selection (selection-text (compat-selection-fragments))]
+         [offset (if *codesnap-original-lines* (compat-selection-start-line doc) 1)]
          [args (map (lambda (lang)
                       (build-silicon-args
                        lang filename *codesnap-theme* *codesnap-background*
@@ -182,7 +165,7 @@
      [(> (length args) 1)
       (set-error! "CodeSnap accepts one output path; quote paths containing spaces")]
      [(not (which "silicon"))
-      (set-error! "CodeSnap: Silicon is not installed or not on PATH")]
+      (set-error! "CodeSnap: Silicon is not installed or not on PATH (run :codesnap-doctor)")]
      [else
       (let* ([input (if (null? args) #f (car args))]
              [_ (when (and (pair? args)
@@ -209,6 +192,16 @@
 (define (codesnap . args)
   (apply codesnap-execute args))
 
+;; Copies the current selection's image to the clipboard.
+(define (codesnap-copy)
+  (codesnap-execute))
+
+;; Saves the image to a path, or to a unique default filename when no path is given.
+(define (codesnap-save . args)
+  (if (null? args)
+      (codesnap-execute (codesnap-default-path))
+      (apply codesnap-execute args)))
+
 ;; Chooses a unique PNG name in the last save directory, Pictures, or the current directory.
 (define (codesnap-default-path)
   (let* ([pictures (absolute-path "~/Pictures")]
@@ -216,7 +209,7 @@
                              (is-dir? *codesnap-save-directory*)
                              *codesnap-save-directory*)
                         (if (is-dir? pictures) pictures (current-directory)))]
-         [name (capture-name (editor-document->path (current-document))
+         [name (capture-name (compat-document-path (compat-document))
                              (local-time/now! "%Y%m%d-%H%M%S"))]
          [base (string-append directory "/" (substring name 0 (- (string-length name) 4)))])
     (let loop ([index 0])
@@ -271,8 +264,7 @@
            (cons "#:original-line-numbers?" *codesnap-original-lines*)
            (cons "#:dedent?" *codesnap-dedent*)))
     (display ")\n" port)
-    (new)
-    (insert_string (get-output-string port))
+    (compat-open-scratch! (get-output-string port))
     (set-status! "CodeSnap: copy this configuration into helix.scm"))
   void)
 
@@ -367,3 +359,114 @@
 (define (codesnap-set-original-lines! value) (codesnap-configure! #:original-line-numbers? value))
 ;; Updates common indentation removal.
 (define (codesnap-set-dedent! value) (codesnap-configure! #:dedent? value))
+
+;; Saved-file keys paired with the function that validates and applies each value.
+(define (config-appliers)
+  (list
+   (cons "theme" (lambda (v) (codesnap-configure! #:theme v)))
+   (cons "background" (lambda (v) (codesnap-configure! #:background v)))
+   (cons "shadow-blur" (lambda (v) (codesnap-configure! #:shadow-blur v)))
+   (cons "window-controls" (lambda (v) (codesnap-configure! #:window-controls? v)))
+   (cons "show-title" (lambda (v) (codesnap-configure! #:show-title? v)))
+   (cons "line-numbers" (lambda (v) (codesnap-configure! #:line-numbers? v)))
+   (cons "pad-horiz" (lambda (v) (codesnap-configure! #:pad-horiz v)))
+   (cons "pad-vert" (lambda (v) (codesnap-configure! #:pad-vert v)))
+   (cons "font" (lambda (v) (codesnap-configure! #:font v)))
+   (cons "font-size" (lambda (v) (codesnap-configure! #:font-size v)))
+   (cons "tab-width" (lambda (v) (codesnap-configure! #:tab-width v)))
+   (cons "original-line-numbers" (lambda (v) (codesnap-configure! #:original-line-numbers? v)))
+   (cons "dedent" (lambda (v) (codesnap-configure! #:dedent? v)))))
+
+;; Problems found while loading the settings file, shown once on first use.
+(define *codesnap-warnings* '())
+
+;; Applies saved settings one at a time so a single bad value cannot discard the rest.
+(define (load-saved-config!)
+  (let ([parsed (read-config-file)])
+    (when parsed
+      (set! *codesnap-warnings* (hash-ref parsed 'warnings))
+      (for-each
+       (lambda (entry)
+         (let ([applier (assoc (car entry) (config-appliers))])
+           (with-handler
+            (lambda (err)
+              (set! *codesnap-warnings*
+                    (append *codesnap-warnings*
+                            (list (string-append (car entry) ": " (trim (error-object-message err)))))))
+            (if applier ((cdr applier) (cdr entry))
+                (error "unknown setting")))))
+       (hash-ref parsed 'entries)))))
+
+;; Shows and clears any saved-settings problems; returns whether there were any.
+(define (codesnap-take-warnings)
+  (let ([warnings *codesnap-warnings*])
+    (set! *codesnap-warnings* '())
+    (when (pair? warnings)
+      (set-error! (string-append "CodeSnap settings file: " (car warnings)
+                                 (if (pair? (cdr warnings))
+                                     (string-append " (+" (number->string (length (cdr warnings))) " more)")
+                                     ""))))
+    (pair? warnings)))
+
+;; Current settings as ordered key/value pairs; shared by the file and the export snippet.
+(define (settings-entries)
+  (list (cons "theme" *codesnap-theme*) (cons "background" *codesnap-background*)
+        (cons "shadow-blur" *codesnap-shadow-blur*)
+        (cons "window-controls" *codesnap-window-controls*)
+        (cons "show-title" *codesnap-show-title*)
+        (cons "line-numbers" *codesnap-line-numbers*)
+        (cons "pad-horiz" *codesnap-pad-horiz*) (cons "pad-vert" *codesnap-pad-vert*)
+        (cons "font" *codesnap-font*) (cons "font-size" *codesnap-font-size*)
+        (cons "tab-width" *codesnap-tab-width*)
+        (cons "original-line-numbers" *codesnap-original-lines*)
+        (cons "dedent" *codesnap-dedent*)))
+
+;; Saves the current settings so they apply in every future editor session.
+(define (codesnap-save-config)
+  (with-handler
+   (lambda (err) (set-error! (string-append "CodeSnap: could not save settings: "
+                                            (trim (error-object-message err)))))
+   (let ([path (write-config-file (settings-entries))])
+     (set-status! (string-append "CodeSnap settings saved: " path))))
+  void)
+
+;; Reports Silicon's version, or false when it cannot be determined.
+(define (silicon-version)
+  (let ([result (run-program "silicon" (list "--version") #f)])
+    (and (render-success? result) (parse-silicon-version (hash-ref result 'stdout)))))
+
+;; Opens a scratch buffer describing what CodeSnap found on this machine.
+(define (codesnap-doctor)
+  (let* ([silicon (which "silicon")]
+         [version (and silicon (silicon-version))]
+         [clipboards (filter which '("wl-copy" "xclip" "xsel"))]
+         [path (config-file-path)]
+         [lines
+          (list
+           "CodeSnap setup check"
+           ""
+           (cond
+             [(not silicon) "silicon:   NOT FOUND. Install it with: cargo install silicon"]
+             [(not version) (string-append "silicon:   " silicon " (version unknown)")]
+             [(version-at-least? version minimum-silicon-version)
+              (string-append "silicon:   " silicon " " (string-join (map number->string version) ".") " OK")]
+             [else (string-append "silicon:   " silicon " is older than "
+                                  (string-join (map number->string minimum-silicon-version) ".")
+                                  "; upgrade with: cargo install silicon --force")])
+           (string-append "clipboard: "
+                          (if (null? clipboards)
+                              "no wl-copy/xclip/xsel found (needed on Linux for :codesnap-copy)"
+                              (string-join clipboards ", ")))
+           (string-append "settings:  " (or path "unknown")
+                          (if (and path (is-file? path)) "" " (not saved yet)"))
+           (if (null? *codesnap-warnings*) ""
+               (string-append "problems:  " (string-join *codesnap-warnings* "\n           ")))
+           (string-append "save to:   " (or *codesnap-save-directory* "~/Pictures or current directory")))])
+    (compat-open-scratch! (string-append (string-join lines "\n") "\n"))
+    (set-status! (if (and silicon version (version-at-least? version minimum-silicon-version)
+                          (null? *codesnap-warnings*))
+                     "CodeSnap: setup looks good"
+                     "CodeSnap: setup needs attention, see the report")))
+  void)
+
+(load-saved-config!)

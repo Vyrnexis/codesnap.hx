@@ -153,6 +153,7 @@
          (lambda () (codesnap-set-original-lines! (not (get-codesnap-original-lines)))) #t)
    (list "Remove Common Indent" get-codesnap-dedent
          (lambda () (codesnap-set-dedent! (not (get-codesnap-dedent)))) #t)
+   (list "Save Settings" (lambda () #f) codesnap-save-config #f)
    (list "Reset Defaults" (lambda () #f) codesnap-reset #f)
    (list "Export Configuration" (lambda () #f) export-from-menu #f)))
 
@@ -239,13 +240,14 @@
 
 ;; Opens the root capture menu with access to saved output and rendering settings.
 (define (codesnap-menu)
+  (codesnap-take-warnings)
   (show-picker!
    (make-picker
     #:name "codesnap-main-menu" #:title "CodeSnap"
-    #:instructions (menu-hint "Enter:select Esc:back" 4)
-    #:items '("Snap to Clipboard" "Snap to File..." "Open Last Capture" "Settings >")
+    #:instructions (menu-hint "Enter:select Esc:back" 5)
+    #:items '("Snap to Clipboard" "Snap to File..." "Open Last Capture" "Settings >" "Check Setup")
     #:close-mode 'pop #:selected-style 'theme
-    #:overlay-scale (lambda () (menu-scale 4))
+    #:overlay-scale (lambda () (menu-scale 5))
     #:keys
     (lambda (state-box event)
       (let ([choice (picker-current-item (unbox state-box))])
@@ -261,7 +263,8 @@
            (pop-last-component-by-name! "codesnap-main-menu")
            (cond [(equal? choice "Snap to Clipboard") (codesnap-execute)]
                  [(equal? choice "Snap to File...") (prompt-save-path)]
-                 [(equal? choice "Open Last Capture") (codesnap-open-last)])
+                 [(equal? choice "Open Last Capture") (codesnap-open-last)]
+                 [(equal? choice "Check Setup") (codesnap-doctor)])
            event-result/consume]
           [else #f])))))
   void)

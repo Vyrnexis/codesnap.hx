@@ -1,8 +1,8 @@
 (define package-name 'codesnap)
-(define version "0.4.0")
+(define version "0.5.0")
 (define dependencies
   '((#:name "ui-utils.hx"
      #:git-url
      "https://github.com/waddie/ui-utils.hx"
      #:sha
-     "5637de400b995a4748f1e319832b04153d833625")))
+     "b76558ddff6cd74a68148268c31c71ad4f8f5c75")))

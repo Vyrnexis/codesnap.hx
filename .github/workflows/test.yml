@@ -20,10 +20,10 @@ jobs:
       matrix:
         steel:
           - name: 0.8.2
-            rev: 2640abca12408c11b0d692b41284815c65856cf8
+            flag: --rev 2640abca12408c11b0d692b41284815c65856cf8
             experimental: false
           - name: master
-            rev: master
+            flag: --branch master
             experimental: true
     steps:
       - name: Check out repository
@@ -33,17 +33,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin
             ~/.cargo/registry
             ~/.cargo/git
-          key: steel-${{ matrix.steel.rev }}-${{ runner.os }}
+          key: steel-${{ matrix.steel.name }}-${{ runner.os }}
 
       - name: Install Steel ${{ matrix.steel.name }}
         run: >-
           cargo install
           --git https://github.com/mattwparas/steel.git
-          --rev ${{ matrix.steel.rev }}
-          --locked
+          ${{ matrix.steel.flag }}
+          --locked --force
           steel-interpreter
 
       - name: Run core checks
